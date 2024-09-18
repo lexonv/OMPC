@@ -1,0 +1,52 @@
+MAGISTERKA:
+
+Ogólne zadanie systemu sterowania:
+- minimalizacja kosztów oraz uzyskanie "inteligentnego" układu dopasowującego się do użytkowników.
+- sterowanie strefowe
+
+Algorytm
+-MPCS
+-Nieliniowe
+-obserwatory stanu
+
+Względem czego optymalizowane:
+- dni w których trzeba grzać (zima, a lato kalendarzowe)
+- komfort termiczny (minimalizacja uchybu sterowania) (yzad = 21 st.C)
+- koszt zużytej energii (wskaźnik do oceny)
+- zużyta energia (J) (optymalizacja sygnału sterującego zaworami, sterowanie przepływem)
+
+Wiedza MPC:
+- wiedza na temat temperatury zewnętrznej, zakłócenie (otoczenia zewnętrznego, poza budynkiem)
+- wiedza na temat temperatury aktualnej, wielkość regulowana (w pomieszczeniach, tego nie posiadamy więc obserwator)
+- wiedza na temat temperatury wody w rurkach (folii? nie bezpośrednie sprzężenie)
+- dane pogodowe (prognoza temperatury godzinowa), zakłócenie
+
+W jaki sposób ogrzewać:
+- bojler, ogrzewanie wodą (działanie na zasadzie grzałki)
+- pompa ciepła
+- grzałka
+- wodne ogrzewanie podłogowe
+
+Parametry pojedynczego pomieszczenia:
+- objętość pomieszczenia (m^3)
+- gęstość materiału podłogi (+ masa)
+- ciepło właściwe materiału izolacyjnego
+- typ izolacji
+- ile średnio przebywa tam osób
+- położenie pomieszczenia (okna, słońce)
+- padający cień (wpływ otoczenia, budynków, na padające do środka światło)
+- godziny użytkowania, plan zajeć ?
+- KRZYWA GRZEWCZA (WYKRES TEMP. WODY ZASILAJĄCEJ OD TEMP. ZEWNĘTRZNEJ)
+
+Urządzenia wykonawcze:
+- bojler, zasobnik ciepłej wody c.w.u.
+- pompa (od bojleru)
+- zawory (przed grzejnikiem, rozprowadzanie ciepła);
+- grzałka (jako element modelowania)
+- rotametry + elektrosiłowniki (siłownik termoelektryczny) + elektrozawory regulacyjne
+
+System sterowania:
+- jeden MPC sterujący wszystkimi urządzeniami (adaptacja?)
+- jeden centralny punkt sterowania z kilkoma przełączanymi regulatorami (sterowanie rozmyte)
+- Na jedno pomieszczenie MPC, supervisor do nadzoru
+
