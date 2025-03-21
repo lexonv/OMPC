@@ -74,7 +74,7 @@
 % [A,B,C,D,Z,vecStatesNum] = generateFloor(matrix, H, insulationTable, coefficients, flag);
 
 
-function [A,B,C,D,Z,vecStatesNum] = generateFloor(matrix, H, insulations, coefficients, equipment, flag)
+function [A,B,C,D,Z,vecStatesNum,exteriorWaLLStates] = generateFloor(matrix, H, insulations, coefficients, equipment, flag)
 
 %wprowadź otoczenie do macierzy (wartości -1 na obrysach macierzy jako otoczenie zewnętrzne)
 n = size(matrix,1);
@@ -280,8 +280,7 @@ n = n+1;
                     end
                 %obsługa błędu
                 else
-                    disp("[ERROR] Błąd w pętli - nie zidentyfikowano elementu macierzy")
-                    return;
+                    error("[ERROR] Błąd w pętli - nie zidentyfikowano elementu macierzy")
                 end
             end
         end
@@ -358,6 +357,21 @@ if size(vecStatesNum,2) > 1
         %Jeżeli model zawiera sekcje nieogrzewane (oznaczone jako 0):
         innerSections = vecNeighbors(2:end,1);
         [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(2:end,2:end),insulations,coefficients,vecStatesNum,innerSections);
+    end
+end
+
+% Wygeneruj wektor przechowujący informację które pomieszczenia posiadają
+% ściany zewnętrzne
+exteriorWaLLStates = [];
+for i = 2:size(vecNeighbors,1)
+    if vecNeighbors(i,:) == zeros(1,size(vecNeighbors,2))
+    else
+        check = vecNeighbors(i,1);
+        if check > 0
+            exteriorWaLLStates = [exteriorWaLLStates 1];
+        else
+            exteriorWaLLStates = [exteriorWaLLStates 0];
+        end
     end
 end
 

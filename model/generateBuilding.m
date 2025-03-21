@@ -1,4 +1,4 @@
-function [A,B,C,D,Z,statesVector] = generateBuilding(matrixTable,heightTable,insulationTable,coefficients,roomEquipment)
+function [A,B,C,D,Z,statesVector,exteriorWallStates,roofStates] = generateBuilding(matrixTable,heightTable,insulationTable,coefficients,roomEquipment)
 
 % matrixTable - przechowuje rozmieszczenie sekcji na każdym z pięter
 % scaleLength - skala siatki w macierzach
@@ -52,6 +52,8 @@ C = [];
 D = [];
 Z = [];
 statesVector = [];
+exteriorWallStates = [];
+roofStates = [];
 flag = [0 ones(1,size(matrixTable,2)-2) 2];
 if size(matrixTable,2) == 1 && size(heightTable,2) == 1
         % Budynek posiada pojedyncze piętro
@@ -60,7 +62,7 @@ if size(matrixTable,2) == 1 && size(heightTable,2) == 1
         matrix = table2array(matrixTable(:,1));
         insulations = [insulationTable(:,1:3) insulationTable(:,5:end)];
         equipment = table2array(roomEquipment(:,1));
-        [Am,Bm,Cm,Dm,Zm,N] = generateFloor(matrix, H, insulations, coefficients, equipment, flag);
+        [Am,Bm,Cm,Dm,Zm,N,ext] = generateFloor(matrix, H, insulations, coefficients, equipment, flag);
         nA = size(A,1); nAm = size(Am,1);
         nB = size(B,2); nBm = size(Bm,2);
         nC = size(C,1); nCm = size(Cm,1);
@@ -71,6 +73,8 @@ if size(matrixTable,2) == 1 && size(heightTable,2) == 1
         D = Dm;
         Z = [Z zeros(nZ, nZmcol-2); Zm(:,1) zeros(nZm, nZcol-2) Zm(:,2:end)];
         statesVector = [statesVector N+size(A,1)-size(Am,1)];
+        exteriorWallStates = [exteriorWallStates ext];
+        roofStates = [roofStates ones(1,size(unique(matrix),1))];
 elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
 
     % dla piętra pierwszego do przedostatniego - posiadają stropy
@@ -80,7 +84,7 @@ elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
         insulations = [insulationTable(:,1:end-2) insulationTable(:,end)];
         equipment = table2array(roomEquipment(:,i));
         f = flag(i);
-        [Am,Bm,Cm,~,Zm,N] = generateFloor(matrix, H, insulations, coefficients, equipment, f);
+        [Am,Bm,Cm,~,Zm,N,ext] = generateFloor(matrix, H, insulations, coefficients, equipment, f);
         nA = size(A,1); nAm = size(Am,1);
         nB = size(B,2); nBm = size(Bm,2);
         nC = size(C,1); nCm = size(Cm,1);
@@ -90,6 +94,8 @@ elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
         C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
         Z = [Z zeros(nZ, nZmcol-2); Zm(:,1) zeros(nZm, nZcol-2) Zm(:,2:end)];
         statesVector = [statesVector N+size(A,1)-size(Am,1)];
+        exteriorWallStates = [exteriorWallStates ext];
+        roofStates = [roofStates zeros(1,size(unique(matrix),1))];
     end
 
     %dla ostatniego piętra - posiada dach zamiast stropu
@@ -98,7 +104,7 @@ elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
     insulations = [insulationTable(:,1:3) insulationTable(:,5:end)];
     equipment = table2array(roomEquipment(:,end));
     f = flag(end);
-    [Am,Bm,Cm,Dm,Zm,N] = generateFloor(matrix, H, insulations, coefficients, equipment, f);
+    [Am,Bm,Cm,Dm,Zm,N,ext] = generateFloor(matrix, H, insulations, coefficients, equipment, f);
     nA = size(A,1); nAm = size(Am,1);
     nB = size(B,2); nBm = size(Bm,2);
     nC = size(C,1); nCm = size(Cm,1);
@@ -109,10 +115,11 @@ elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
     D = Dm;
     Z = [Z zeros(nZ, nZmcol-2); Zm(:,1) zeros(nZm, nZcol-2) Zm(:,2:end)];
     statesVector = [statesVector N+size(A,1)-size(Am,1)];
+    exteriorWallStates = [exteriorWallStates ext];
+    roofStates = [roofStates ones(1,size(unique(matrix),1))];
 else
-    disp("Błąd danych podczas tworzenia piętra -> upewnij się, że poprawnie wprowadzono dane")
+    error("Błąd danych podczas tworzenia piętra -> upewnij się, że poprawnie wprowadzono dane")
 end
-
 %tutaj kod realizujący łączenie sekcji pomiędzy piętrami
 %Zastąp z piętra poniżej stan z sekcji będący temperaturą zewnętrzną stropu
 %temperaturą podłogi sekcji znajdującej się powyżej

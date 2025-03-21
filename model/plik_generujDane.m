@@ -1,7 +1,7 @@
 clear;clc;
 %--------------------------------------------------------------------------
 % stałe parametry
-scale = 5; %skala siatki macierzy
+scale = 7.5; %skala siatki macierzy
 coeffInside = 3; %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku
 coeffOutside = 20; %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr)
 roofAngle = 40; %kąt nachylenia dachu [°]
@@ -62,83 +62,56 @@ level2Equipment = [0 1 0 1;
 level3Equipment = [0 0 0;
                    0 0 0];
 
-roomEquipment = table(level1Equipment,level2Equipment);
+roomEquipment = table(level1Equipment);
 
-[A,B,C,D,Z,N] = generateBuilding(matrixTable,heightTable,insulationTable,coefficients,roomEquipment);
+[A,B,C,D,Z,N,exWalls,roofSt] = generateBuilding(matrixTable,heightTable,insulationTable,coefficients,roomEquipment);
+nx = size(A,1); nu = size(B,2); ny = size(C,1); nz = size(Z,2);
 
 %%
-
-nx = size(A,1);
-nu = size(B,2);
-ny = size(C,1);
 
 %model dyskretny
 Ts = 60;
 sys = ss(A,[B Z],C,D);
 sysd = c2d(sys,Ts,'zoh');
 [Ad,Bd,Cd,Dd] = ssdata(sysd);
-
 Zd = Bd(:, size(B, 2)+1:end);
 Bd = Bd(:, 1:size(B, 2));
 
 %parametry regulatora
-nc = 20;
-npred = 100;
+nc = 8;
+npred = 60;
 na = 10;
-time = 3600*2; %czas symulacji [s]
-Q = 150*(C'*C);
+time = 3600; %czas symulacji [s]
+Q = 100*(C'*C);
 R = 0.5*eye(size(B,2));
+
+%trajektorie referencyjne i zakłóceń
+trajRef = [21 21 20 20; 
+           20 20 21 21;];
+trajDist = [7 5.5 3.25 5.75 6.1 6.5 4.5; 
+            10 10.05 10.15 10.275 10.215 10.15 10.05; 
+            0 0 0 0 0 0 0; 
+            0 0 0 0 0 0 0];
 
 %--------------------------------------------------------------------------
 %%
 
 %Ograniczenia oraz warunki początkowe
 Ta0 = 18; %temperatura sekcji
-Tzi0 = 18; Tzo0 = 18; %temperatury wewnętrzna/zewnętrza ściany zewnętrznej
+Tzi0 = 18; Tzo0 = 5; %temperatury wewnętrzna/zewnętrza ściany zewnętrznej
 Twi0 = 18; Two0 = 18; %temperatury wewnętrzna/zewnętrza ściany wewnętrznej
-Tp0 = 20; %temperatura podłogi
+Tp0 = 25; %temperatura podłogi
 
-Ta_max = 25; Ta_min = 0;
-Twall_max = 100; Twall_min = -100;
-Tp_max = 35; Tp_min = 0;
-%pętla tworząca wektor stanów początkowych:
-x0 = [];
-xmax = [];
-xmin = [];
-for i = 2:size(N,2)
-    m = N(i-1);
-    n = N(i);
-    cnt = ((n - m) - 4 )/2;
-    states0 = [];
-    xmax0 = [];
-    xmin0 = [];
-    for j = 1:cnt
-        states0 = [states0 Twi0 Two0];
-        xmax0 = [xmax0 Twall_max Twall_max];
-        xmin0 = [xmin0 Twall_min Twall_min];
-    end
-    x0 = [x0 [Ta0 Tzi0 Tzo0 states0 Tp0]];
-    xmax = [xmax [Ta_max Twall_max Twall_max xmax0 Tp_max]];
-    xmin = [xmin [Ta_min Twall_min Twall_min xmin0 Tp_min]];
-end
+Ta_max = 25; Ta_min = 0; %ograniczenia temp. pomieszczen
+Twall_max = 100; Twall_min = -100; %ograniczenia temp. scian
+Tp_max = 35; Tp_min = 0; %ograniczenia temp. podlogi
 
-cnt = ((nx - size(x0,2))-2)/2;
-states0 = [];
-xmax0 = [];
-xmin0 = []; 
-for j = 1:cnt
-    states0 = [states0 Twi0 Two0];
-    xmax0 = [xmax0 Twall_max Twall_max];
-    xmin0 = [xmin0 Twall_min Twall_min];
-end
-x0 = [x0 [Ta0 states0 Tp0]];
-x0 = x0';
-xmax = [xmax [Ta_max xmax0 Tp_max]];
-xmin = [xmin [Ta_min xmin0 Tp_min]]; 
+statesInit = [Ta0, Tzi0, Tzo0, Twi0, Two0, Tp0];
+statesConstr = [Ta_max, Ta_min, Twall_max, Twall_min, Tp_max, Tp_min];
 
-%Ograniczenia
-umax = 50*ones(nu,1);
-umin = 0*ones(nu,1);
+[x0,xmax,xmin] = initialStates(A,statesInit, statesConstr, N, exWalls, roofSt);
+umax = 45*ones(nu,1);
+umin = 18*ones(nu,1);
 xmax = xmax';
 xmin = xmin';
 ymax = Ta_max*ones(ny,1);
@@ -149,13 +122,22 @@ ymin = Ta_min*ones(ny,1);
 % [K,Sx,Sxc,Sc] = ompc_cost(Ad,Bd,Q,R,nc);
 [K,Sx,Sxc,Sxr,Sc,Sr,Scr] = ompc_cost_tracking(Ad,Bd,Cd,Q,R,nc,na);
 
+%--------------------------------------------------------------------------
 %%
-%Obserwator zakłóceń oraz stanów
-nz = size(Zd,2);
-Ao = [Ad Zd; zeros(nz,nx) zeros(nz,nz)];
-Bo = [Bd; zeros(nz,nu)];
-Co = [Cd zeros(ny,nz)];
-Go = dlqr(Ao', Co', 1e1*eye(nx+nz), 1e-4*eye(ny)); Go = Go';
-Kz = pinv(Bd)*Zd;
+%Obserwator zakłóceń oraz stanów (ESO)
+Kz = -Cd*inv(Ad)*Zd;
 
+Z_unknown = Zd(:,3:end);
+Z_known = Zd(:,1:2);
+n_states = size(Ad, 1);
+n_disturbances = size(Z_unknown, 2);
+A_bar = [Ad, Z_unknown; zeros(n_disturbances, n_states), zeros(n_disturbances)];
+B_bar = [Bd; zeros(n_disturbances, size(Bd, 2))];
+Z_bar_known = [Z_known; zeros(n_disturbances, size(Z_known, 2))];
+C_bar = [Cd, zeros(size(Cd, 1), n_disturbances)];
+L = dlqr(A_bar', C_bar', 100*eye(size(A_bar,1)), 1e-5*eye(nu)); L = L';
 
+% Ao = [Ad Zd; zeros(nz,nx) zeros(nz,nz)];
+% Bo = [Bd; zeros(nz,nu)];
+% Co = [Cd zeros(ny,nz)];
+% Go = dlqr(Ao', Co', 0.1*eye(nx+nz), 1e4*eye(nu)); Go = Go';
