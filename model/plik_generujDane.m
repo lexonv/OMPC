@@ -1,7 +1,7 @@
 clear;clc;
 %--------------------------------------------------------------------------
 % stałe parametry
-scale = 7.5; %skala siatki macierzy
+scale = 10; %skala siatki macierzy
 coeffInside = 3; %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku
 coeffOutside = 20; %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr)
 roofAngle = 40; %kąt nachylenia dachu [°]
@@ -18,7 +18,7 @@ matrix1 = [1 1 2 2;
            1 1 2 2; 
            1 1 2 2];
 
-matrix2 = [2 2 2 3; 
+matrix2 = [2 2 2 2; 
            1 1 3 3; 
            1 1 3 4; 
            4 4 4 4];
@@ -55,8 +55,8 @@ insulationGround = [materialThickness;materialDensity;materialSpecificHeat;mater
 insulationTable = table(insulationExternal, insulationInternal, insulationFloor, insulationCeiling, insulationRoof, insulationGround);
 
 % konfiguracja pomieszczeń (okna, liczba okien w pomieszczeniu, <reszta>)
-level1Equipment = [1 1 1 0 1;
-                   1 1 1 1 1];
+level1Equipment = [1 1 1 1;
+                   2 2 2 2];
 level2Equipment = [0 1 0 1;
                    0 2 0 2];
 level3Equipment = [0 0 0;
@@ -78,19 +78,19 @@ Zd = Bd(:, size(B, 2)+1:end);
 Bd = Bd(:, 1:size(B, 2));
 
 %parametry regulatora
-nc = 8;
+nc = 12;
 npred = 60;
-na = 10;
+na = 30;
 time = 3600; %czas symulacji [s]
-Q = 100*(C'*C);
+Q = 50*(C'*C);
 R = 0.5*eye(size(B,2));
 
 %trajektorie referencyjne i zakłóceń
 trajRef = [21 21 20 20; 
-           20 20 21 21;];
+           20 20 21 21];
 trajDist = [7 5.5 3.25 5.75 6.1 6.5 4.5; 
             10 10.05 10.15 10.275 10.215 10.15 10.05; 
-            0 0 0 0 0 0 0; 
+            0 0 0 0 0 0 0;
             0 0 0 0 0 0 0];
 
 %--------------------------------------------------------------------------
@@ -125,19 +125,15 @@ ymin = Ta_min*ones(ny,1);
 %--------------------------------------------------------------------------
 %%
 %Obserwator zakłóceń oraz stanów (ESO)
-Kz = -Cd*inv(Ad)*Zd;
-
-Z_unknown = Zd(:,3:end);
-Z_known = Zd(:,1:2);
-n_states = size(Ad, 1);
-n_disturbances = size(Z_unknown, 2);
-A_bar = [Ad, Z_unknown; zeros(n_disturbances, n_states), zeros(n_disturbances)];
-B_bar = [Bd; zeros(n_disturbances, size(Bd, 2))];
-Z_bar_known = [Z_known; zeros(n_disturbances, size(Z_known, 2))];
-C_bar = [Cd, zeros(size(Cd, 1), n_disturbances)];
+distNum = 2; %ilość zakłóceń które są znane
+Z_known = Zd(:,1:distNum);
+Z_unknown = Zd(:,distNum+1:end);
+n_dist = size(Z_unknown, 2);
+A_bar = [Ad, Z_unknown; zeros(n_dist, nx), zeros(n_dist)];
+B_bar = [Bd; zeros(n_dist, size(Bd, 2))];
+Z_bar_known = [Z_known; zeros(n_dist, size(Z_known, 2))];
+C_bar = [Cd, zeros(size(Cd, 1), n_dist)];
 L = dlqr(A_bar', C_bar', 100*eye(size(A_bar,1)), 1e-5*eye(nu)); L = L';
 
-% Ao = [Ad Zd; zeros(nz,nx) zeros(nz,nz)];
-% Bo = [Bd; zeros(nz,nu)];
-% Co = [Cd zeros(ny,nz)];
-% Go = dlqr(Ao', Co', 0.1*eye(nx+nz), 1e4*eye(nu)); Go = Go';
+%Macierz kompensacji zakłóceń
+Kz = -Cd*inv(Ad)*Zd;

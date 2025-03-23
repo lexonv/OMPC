@@ -114,6 +114,8 @@ for sec = 1:size(sections,2)
     end
 end
 
+disp("=====================================================================")
+
 vecNeighbors = zeros(size(sections,2),size(sections,2));
 n = 0;
 for sec = 1:size(sections,2)
