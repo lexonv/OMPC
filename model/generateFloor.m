@@ -266,7 +266,7 @@ if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
     %piętro nie posiada sekcji zerowej
 else
     eq = equipment(:,m); m = m+1;
-    [param,n] = model_parameters(vecNeighbors(2,:), vecArea(1,2), H, flag, insulations, coefficients);
+    [param,n] = model_parameters(vecNeighbors(2,:), vecArea(1,2), H, flag, insulations, coefficients,eq);
     [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(2,:),vecArea(1,2),"nieogrzewana",flag,insulations,coefficients,eq);
     nA = size(A,1); nAm = size(Am,1);
     nB = size(B,2); nBm = size(Bm,1);
@@ -284,7 +284,7 @@ end
 %Wygeneruj pozostałe sekcje
 for i = 3:size(vecNeighbors,2)
     eq = equipment(:,m); m = m+1;
-    [param,n] = model_parameters(vecNeighbors(i,:), vecArea(1,i), H, flag, insulations, coefficients);
+    [param,n] = model_parameters(vecNeighbors(i,:), vecArea(1,i), H, flag, insulations, coefficients, eq);
     [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(i,:),vecArea(1,i),"sekcja",flag,insulations,coefficients,eq);
     nA = size(A,1); nAm = size(Am,1);
     nB = size(B,2); nBm = size(Bm,2);
@@ -305,15 +305,16 @@ vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy sie zgadzaly
 % - Ignorujemy pierwszy wiersz vecNeighbors ponieważ dotyczy on połączeń sekcja<->otoczenie zewnętrzne.
 % - Wiersz drugi zostanie obsłużony na końcu - dotyczy sekcji budynku nieposiadającej ogrzewania
 % - Jeżeli piętro posiada tylko jedno pomieszczenie, pomiń łączenie
+
 if size(vecStatesNum,2) > 1
     if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
         %Jeżeli model nie zawiera sekcji nieogrzewanych (oznaczonych jako 0):
         innerSections = vecNeighbors(3:end,1);
-        [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(3:end,3:end),insulations,coefficients,vecStatesNum,innerSections);
+        [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(3:end,3:end),vecArea(3:end),H,insulations,coefficients,vecStatesNum,innerSections);
     else
         %Jeżeli model zawiera sekcje nieogrzewane (oznaczone jako 0):
         innerSections = vecNeighbors(2:end,1);
-        [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(2:end,2:end),insulations,coefficients,vecStatesNum,innerSections);
+        [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(2:end,2:end),vecArea(2:end),H,insulations,coefficients,vecStatesNum,innerSections);
     end
 end
 

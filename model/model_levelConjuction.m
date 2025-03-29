@@ -36,10 +36,9 @@ for k = 1:size(sectionsNum,2)-1
             x = matrix(row,col);
 
             if x ~= 0
-                idx_overwritting = indexUpper_end(row)-1; %wskazuje na podłogę sekcji górnej
+                idx_overwritting = indexUpper_end(row) - 1; %wskazuje na podłogę sekcji górnej
                 idx_overwrite = indexLower_end(col) - 2; %wskazuje na część zewnętrzną stropu sekcji dolnej
                 
-
                 vecParam = table2array(insulationsTable(:,4));
                 l_mid = sum(vecParam(1,:))/2;
                 val = 0; idx = 0;

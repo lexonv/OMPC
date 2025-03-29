@@ -38,7 +38,7 @@ beq = zeros(0,1);
     
 % Opcje solvera
 ctrl0 = zeros(nc*nu,1);
-options = mpcInteriorPointOptions; options.Display = 'off'; options.MaxIterations = 100; options.ConstraintTolerance = 1.0e-2;
+options = mpcInteriorPointOptions('double'); options.Display = 'off'; options.MaxIterations = 150; options.ConstraintTolerance = 5.0e-2; options.StepTolerance = 1.0e-5;
 [ctrl, ~, exitflag] = mpcInteriorPointSolver(H, f', A, b, Aeq, beq, ctrl0, options);
 
 % Sprawdź, czy rozwiązanie jest wykonalne

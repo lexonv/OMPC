@@ -1,4 +1,4 @@
-function [A,B,C,Z,vecStatesNum_edited] = model_floorConjuction(A0,B0,C0,Z0,vecNeighbors,insulations,coefficients,vecStatesNum,innerSections)
+function [A,B,C,Z,vecStatesNum_edited] = model_floorConjuction(A0,B0,C0,Z0,vecNeighbors,vecArea,H,insulations,coefficients,vecStatesNum,innerSections)
 
 %Przetransformuj vecNeighbors w taki sposób, aby kolejne występowania ścian
 %wewnętrznych w sekcji były oznakowane jako 1 (pierwsze wystąpienie), 2 (drugie wystąpienie)
@@ -75,15 +75,19 @@ for i = 1:size(lowerWallsEnum,1)
                 end
             end
             
-            h2 = coefficients(2);
-            Cwi = (sum(vecParam(1,1:idx-1) * vecParam(2,1:idx-1)' * vecParam(3,1:idx-1)) + abs(l_mid - sum(vecParam(1,1:idx-1)))*vecParam(2,idx)*vecParam(3,idx));
-            Cwo = (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx));
+            scale = coefficients(1);
+            h1 = coefficients(2);
+            cp = coefficients(14);
+            dp = coefficients(15);
+            W = vecNeighbors(i,j) * scale;
+            area = vecArea(i) * scale^2;
+            Ca = cp * dp * area * H;
+            Cwo = (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*H*W;
 
             %wplyw części zewnętrznej na temperaturę sekcji aktualnej
-            A0(sectionOverwrittenIndex, idx2_overwritting) = h2/Cwi;
-            
+            A0(sectionOverwrittenIndex, idx2_overwritting) = h1*H*W/Ca;
             %wpływ temperatury sekcji aktualnej na część zewnętrzną ściany
-            A0(idx2_overwritting, sectionOverwrittenIndex) = h2/Cwo;
+            A0(idx2_overwritting, sectionOverwrittenIndex) = h1*H*W/Cwo;
 
             %zapisz numery indeksów, które należy usunąć
             del_index = [del_index; idx1_overwritten idx2_overwritten];

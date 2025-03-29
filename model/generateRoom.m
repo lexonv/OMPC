@@ -36,16 +36,18 @@ scale = coefficients(1);
 h2 = coefficients(2); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku
 h1 = coefficients(3); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr)
 roofAngle = coefficients(4);
-k = coefficients(10); %współczynnik proporcjonalności energii przechodzącej do całkowitej
-Awin = coefficients(8)*eq(2,:); %powierzchnia okien
-SC = coefficients(11); %współczynnik zacienienia okna
-alpha = coefficients(12); %współczynnik absorpcji ściany (zależny od koloru)
+Awin = coefficients(5)*eq(2,:); %powierzchnia okien
+Uwin = coefficients(6);
+k = coefficients(7); %współczynnik proporcjonalności energii przechodzącej do całkowitej
+SC = coefficients(8); %współczynnik zacienienia okna
+alpha = coefficients(9); %współczynnik absorpcji ściany (zależny od koloru)
+cw = coefficients(10);
+dw = coefficients(11);
 %f - orientacja
 
 %przeskaluj dane
 area = scale^2 * area;
 vecNeighbors = scale * vecNeighbors;
-
 %dach ze skosem
 if flag == -1 || flag == 2
     alphaRad = roofAngle/180*pi;
@@ -77,7 +79,7 @@ Rb = param(11+3*n);
 
 %czy ściana zewnętrzna posiada okno
 if eq(1,:) == 1
-    Uz = (L*H-coefficients(8)*eq(2,:))/(L*H)*1/Rz + coefficients(8)*eq(2,:)/(L*H)*coefficients(9);
+    Uz = (L*H-Awin)/(L*H)*1/Rz + Awin/(L*H)*Uwin;
     Rz = 1/Uz;
 
     vecParam = table2array(insulationsTable(:,1));
@@ -189,15 +191,16 @@ elseif flag == -1
 end
 
 %-----------
-d = coefficients(13); % rozstaw rur [m]
-L_total = area/d;
-Vwater = pi*(coefficients(6)/2 - coefficients(7))^2 * L_total;
-cw = coefficients(14);
-dw = coefficients(15);
+d = eq(5); % rozstaw rur [m]
+L_total = 1.2*area/d;
+pipeDiameter = eq(3);
+pipeThickness = eq(4);
+Vwater = pi*((pipeDiameter - 2*pipeThickness)/2)^2 * L_total;
 Cwater = dw*cw*Vwater;
+pipeRadius = (pipeDiameter - 2*pipeThickness);
+waterVelocity = eq(6)/60000 / (pi*(pipeRadius)^2); % [m/s]
 
-m_dot = dw*pi*(coefficients(6)/2 - coefficients(7))^2*coefficients(5);
-
+m_dot = dw*pi*(pipeRadius)^2*waterVelocity;
 %Cwater * dT_water(t)/dt = m_dot*cw*(T_supply(t)-T_return(t)) + area/Rp*(T_floor(t)-T_return(t))
 returnWaterEq = [0 0 0 zeros(1,2*n) 0 0 area/Rp/Cwater -(m_dot*cw/Cwater + area/Rp/Cwater)];
 

@@ -1,10 +1,13 @@
-function [param,n] = model_parameters(vecNeighbors, area, H, flag, insulationsTable, coefficients)
+function [param,n] = model_parameters(vecNeighbors, area, H, flag, insulationsTable, coefficients, eq)
 
 scale = coefficients(1); %skala siatki macierzy
 roofAngle = coefficients(4);
-waterVelocity = coefficients(5);
-pipeDiameter = coefficients(6);
-pipeThickness = coefficients(7);
+cw = coefficients(10); % ciepło właściwe wody
+dw = coefficients(11); % gęstość wody
+kw = coefficients(12); % przewodność cieplna wody
+u = coefficients(13); % lepkość
+cp = coefficients(14);
+dp = coefficients(15);
 
 %przeskaluj dane aby otrzymać odpowiednie długości w jednostkach SI
 area = scale^2 * area;
@@ -22,7 +25,7 @@ else
 end
 
 %pojemność cieplna sekcji (powietrza)
-Ca = 1020*1.1225*area*H;
+Ca = cp*dp*area*H;
 
 %pojemnosc cieplna scian zewnetrznych
 L = vecNeighbors(1,1); %długość ściany zewnętrznej (sąsiedniczącej z otoczeniem zewnętrznym)
@@ -121,17 +124,22 @@ for i = 1:size(vecParam,2)
 end
 
 %------------------------
-dw = coefficients(15); % gęstość wody
-cw = coefficients(14); % ciepło właściwe wody
-kw = 0.642; % przewodność cieplna wody
-u = 0.000547; % lepkość
+pipeDiameter = eq(3);
+pipeThickness = eq(4);
 d = (pipeDiameter - 2*pipeThickness); %16 [mm] średnica zewnętrzna - 2 * 2 [mm] grubość ścianek
+waterVelocity = eq(6)/60000 / (pi*(d/2)^2); % [m/s]
 
 Re = dw * waterVelocity * d/u; % Liczba Reynoldsa
-Pr = cw*u/kw; % Liczba Prandtla
-Nu = 0.023*Re^0.8 * Pr^0.3; % Liczba Nusselta
+if Re < 2300
+    %przepływ laminarny
+    Nu = 3.66;
+elseif Re >= 2300
+    %przepływ turbulentny lub przejściowy
+    Pr = cw*u/kw; % Liczba Prandtla
+    Nu = 0.023*Re^0.8 * Pr^0.3; % Liczba Nusselta
+end
+hw = kw/d*Nu; % współczynnik przyjmowania ciepła
 
-hw = Nu * kw / d; % współczynnik przyjmowania ciepła
 
 param = [Ca,Czi,Czo,Cwi,Cwo,Csi,Cso,Cp,Rz,Rw_vec,Rs,Rp,hw,Rb];
 n = size(Rw_vec,2);
