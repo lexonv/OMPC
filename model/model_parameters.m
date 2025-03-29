@@ -121,8 +121,8 @@ for i = 1:size(vecParam,2)
 end
 
 %------------------------
-dw = 988; % gęstość wody
-cw = 4180; % ciepło właściwe wody
+dw = coefficients(15); % gęstość wody
+cw = coefficients(14); % ciepło właściwe wody
 kw = 0.642; % przewodność cieplna wody
 u = 0.000547; % lepkość
 d = (pipeDiameter - 2*pipeThickness); %16 [mm] średnica zewnętrzna - 2 * 2 [mm] grubość ścianek
