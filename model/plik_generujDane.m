@@ -62,7 +62,7 @@ insulationGround = [materialThickness;materialDensity;materialSpecificHeat;mater
 insulationTable = table(insulationExternal, insulationInternal, insulationFloor, insulationCeiling, insulationRoof, insulationGround);
 
 % konfiguracja pomieszczeń (okna, liczba okien w pomieszczeniu, <reszta>)
-level1Equipment = [1 1 1 0 1;
+level1Equipment = [1 1 1 1 1;
                    1 1 1 1 1];
 level2Equipment = [0 1 0 1;
                    0 2 0 2];
@@ -95,10 +95,10 @@ R = 0.5*eye(size(B,2));
 %trajektorie referencyjne i zakłóceń
 trajRef = [21 21 20 20; 
            20 20 21 21;];
-trajDist = [7 5.5 3.25 5.75 6.1 6.5 4.5; 
-            10 10.05 10.15 10.275 10.215 10.15 10.05; 
-            0 0 0 0 0 0 0; 
-            0 0 0 0 0 0 0];
+trajDist = [7 5.5 3.25 5.75 6.1 6.5 4.5;
+            1000 950 925 915 900 825 625;
+            10 10.05 10.15 10.275 10.215 10.15 10.05];
+trajDist = [trajDist;zeros(nz-size(trajDist,1),size(trajDist,2))];
 
 %--------------------------------------------------------------------------
 %%
@@ -136,8 +136,8 @@ ymin = Ta_min*ones(ny,1);
 %Obserwator zakłóceń oraz stanów (ESO)
 Kz = -Cd*inv(Ad)*Zd;
 
-Z_unknown = Zd(:,3:end);
-Z_known = Zd(:,1:2);
+Z_known = Zd(:,1:3);
+Z_unknown = Zd(:,4:end);
 n_states = size(Ad, 1);
 n_disturbances = size(Z_unknown, 2);
 A_bar = [Ad, Z_unknown; zeros(n_disturbances, n_states), zeros(n_disturbances)];

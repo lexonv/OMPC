@@ -4,9 +4,9 @@
 %temperatura pomieszczenia (sekcji)
 %temperatury ścian zewnętrznych (Tzi i Tzo)
 %temperatury ścian wewnętrznych (Tw1i, Tw1o, Tw2i, Tw2o...)
-%temperatura wody powracającej do mieszacza (jednen obwód grzewczy)
 %temperatura sufitu lub stropu (Tsi, Tsoi)
 %temperatura podłogi
+%temperatura wody ogrzewającej podłogę (jeden obwód grzewczy)
 
 %przyjęta kolejność w wektorze parametrów:
 %1. pojemnosc cieplna sekcji (powietrza)
@@ -46,6 +46,7 @@ alpha = coefficients(12); %współczynnik absorpcji ściany (zależny od koloru)
 area = scale^2 * area;
 vecNeighbors = scale * vecNeighbors;
 
+%dach ze skosem
 if flag == -1 || flag == 2
     alphaRad = roofAngle/180*pi;
     if mod(roofAngle,180) == 0

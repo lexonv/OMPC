@@ -118,8 +118,6 @@ vecNeighbors = zeros(size(sections,2),size(sections,2));
 n = 0;
 for sec = 1:size(sections,2)
 k = sections(sec);
-disp(" ")
-disp("=== Dla elementu: " + k + "===")
 n = n+1;
     for i = 1:row
         for j = 1:col
@@ -128,10 +126,6 @@ n = n+1;
                 if i == 1 && j == 1
                     checkRight = matrix(i,j+1);
                     checkDown = matrix(i+1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkRight: " + checkRight);
-                    disp("checkDown: " + checkDown);
                     if checkRight ~= k
                         vecNeighbors(n,sections==checkRight) = vecNeighbors(n,sections==checkRight) + 1;
                     end
@@ -142,8 +136,6 @@ n = n+1;
                 elseif i == 1 && j == col
                     checkLeft = matrix(i,j-1);
                     checkDown = matrix(i+1,j);
-                    disp("checkLeft: " + checkLeft);
-                    disp("checkDown: " + checkDown);
                     if checkLeft ~= k
                         vecNeighbors(n,sections==checkLeft) = vecNeighbors(n,sections==checkLeft) + 1;
                     end
@@ -154,10 +146,6 @@ n = n+1;
                 elseif i == row && j == col
                     checkLeft = matrix(i,j-1);
                     checkUp = matrix(i-1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkLeft: " + checkLeft);
-                    disp("checkUp: " + checkUp);
                     if checkLeft ~= k
                         vecNeighbors(n,sections==checkLeft) = vecNeighbors(n,sections==checkLeft) + 1;
                     end
@@ -168,10 +156,6 @@ n = n+1;
                 elseif i == row && j == 1
                     checkRight = matrix(i,j+1);
                     checkUp = matrix(i-1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkRight: " + checkRight);
-                    disp("checkUp: " + checkUp);
                     if checkRight ~= k
                         vecNeighbors(n,sections==checkRight) = vecNeighbors(n,sections==checkRight) + 1;
                     end
@@ -183,11 +167,6 @@ n = n+1;
                     checkRight = matrix(i,j+1);
                     checkLeft = matrix(i,j-1);
                     checkDown = matrix(i+1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkRight: " + checkRight);
-                    disp("checkLeft: " + checkLeft);
-                    disp("checkDown: " + checkDown);
                     if checkRight ~= k
                         vecNeighbors(n,sections==checkRight) = vecNeighbors(n,sections==checkRight) + 1;
                     end
@@ -202,11 +181,6 @@ n = n+1;
                     checkLeft = matrix(i,j-1);
                     checkUp = matrix(i-1,j);
                     checkDown = matrix(i+1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkLeft: " + checkLeft);
-                    disp("checkUp: " + checkUp);
-                    disp("checkDown: " + checkDown);
                     if checkLeft ~= k
                         vecNeighbors(n,sections==checkLeft) = vecNeighbors(n,sections==checkLeft) + 1;
                     end
@@ -221,11 +195,6 @@ n = n+1;
                     checkRight = matrix(i,j+1);
                     checkLeft = matrix(i,j-1);
                     checkUp = matrix(i-1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkRight: " + checkRight);
-                    disp("checkLeft: " + checkLeft);
-                    disp("checkUp: " + checkUp);
                     if checkRight ~= k
                         vecNeighbors(n,sections==checkRight) = vecNeighbors(n,sections==checkRight) + 1;
                     end
@@ -240,11 +209,6 @@ n = n+1;
                     checkRight = matrix(i,j+1);
                     checkUp = matrix(i-1,j);
                     checkDown = matrix(i+1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkRight: " + checkRight);
-                    disp("checkUp: " + checkUp);
-                    disp("checkDown: " + checkDown);
                     if checkRight ~= k
                         vecNeighbors(n,sections==checkRight) = vecNeighbors(n,sections==checkRight) + 1;
                     end
@@ -260,12 +224,6 @@ n = n+1;
                     checkLeft = matrix(i,j-1);
                     checkUp = matrix(i-1,j);
                     checkDown = matrix(i+1,j);
-                    disp("---------")
-                    disp("Element: " + k + " ("+i+","+j+")");
-                    disp("checkRight: " + checkRight);
-                    disp("checkLeft: " + checkLeft);
-                    disp("checkUp: " + checkUp);
-                    disp("checkDown: " + checkDown);
                     if checkRight ~= k
                         vecNeighbors(n,sections==checkRight) = vecNeighbors(n,sections==checkRight) + 1;
                     end
@@ -305,7 +263,7 @@ m = 1;
 %zerowy (tzn. nie ma w budynku sekcji nieogrzewanej), to pomiń jej tworzenie.
 
 if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
-    %pomiń tworzenie sekcji zerowej
+    %piętro nie posiada sekcji zerowej
 else
     eq = equipment(:,m); m = m+1;
     [param,n] = model_parameters(vecNeighbors(2,:), vecArea(1,2), H, flag, insulations, coefficients);
@@ -319,7 +277,7 @@ else
     B = [zeros(nBm,nB); B];  
     C = [zeros(nC,nCm);C];
     D = Dm;
-    Z = [Z zeros(nZ,1); Zm(:,1:2) zeros(nZm,nZcol-2) Zm(:,3)];
+    Z = [Z zeros(nZ,1); Zm(:,1:3) zeros(nZm,nZcol-3) Zm(:,4)];
     vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
 end
 
@@ -336,10 +294,9 @@ for i = 3:size(vecNeighbors,2)
     B = [B zeros(nA, nBm); zeros(nAm, nB) Bm];  
     C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
     D = Dm;
-    Z = [Z zeros(nZ,1); Zm(:,1:2) zeros(nZm,nZcol-2) Zm(:,3)];
+    Z = [Z zeros(nZ,1); Zm(:,1:3) zeros(nZm,nZcol-3) Zm(:,4)];
     vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
 end
-
 vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy sie zgadzaly
 
 %Upraszczanie modelu i łączenie sekcji tworzących piętro budynku:

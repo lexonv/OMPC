@@ -49,7 +49,6 @@ sectionsNum = [sectionsNum [size(matrixNeighbors,1)+1; size(matrixNeighbors,2)+1
 A = [];
 B = [];
 C = [];
-D = [];
 Z = [];
 statesVector = [];
 exteriorWallStates = [];
@@ -71,7 +70,7 @@ if size(matrixTable,2) == 1 && size(heightTable,2) == 1
         B = [B zeros(nA, nBm); zeros(nAm, nB) Bm];  
         C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
         D = Dm;
-        Z = [Z zeros(nZ, nZmcol-2); Zm(:,1) zeros(nZm, nZcol-2) Zm(:,2:end)];
+        Z = [Z zeros(nZ, nZmcol-3); Zm(:,1:2) zeros(nZm, nZcol-3) Zm(:,3:end)];
         statesVector = [statesVector N+size(A,1)-size(Am,1)];
         exteriorWallStates = [exteriorWallStates ext];
         roofStates = [roofStates ones(1,size(unique(matrix),1))];
@@ -92,7 +91,7 @@ elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
         A = [A zeros(nA, nAm); zeros(nAm, nA) Am];
         B = [B zeros(nA, nBm); zeros(nAm, nB) Bm];  
         C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
-        Z = [Z zeros(nZ, nZmcol-2); Zm(:,1) zeros(nZm, nZcol-2) Zm(:,2:end)];
+        Z = [Z zeros(nZ, nZmcol-3); Zm(:,1:2) zeros(nZm, nZcol-3) Zm(:,3:end)];
         statesVector = [statesVector N+size(A,1)-size(Am,1)];
         exteriorWallStates = [exteriorWallStates ext];
         roofStates = [roofStates zeros(1,size(unique(matrix),1))];
@@ -113,7 +112,7 @@ elseif size(matrixTable,2) > 1 && size(heightTable,2) > 1
     B = [B zeros(nA, nBm); zeros(nAm, nB) Bm];  
     C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
     D = Dm;
-    Z = [Z zeros(nZ, nZmcol-2); Zm(:,1) zeros(nZm, nZcol-2) Zm(:,2:end)];
+    Z = [Z zeros(nZ, nZmcol-3); Zm(:,1:2) zeros(nZm, nZcol-3) Zm(:,3:end)];
     statesVector = [statesVector N+size(A,1)-size(Am,1)];
     exteriorWallStates = [exteriorWallStates ext];
     roofStates = [roofStates ones(1,size(unique(matrix),1))];
