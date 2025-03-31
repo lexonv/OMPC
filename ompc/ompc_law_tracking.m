@@ -1,37 +1,57 @@
-function [u,c] = ompc_law_tracking(A,B,C,K,Sx,Sxc,Sxr,Sc,Sr,Scr,umax,umin,ymax,ymin,nc,npred,ref,dist,ctrl0,x)
-
+function [u, c] = ompc_law_tracking(A,B,C,K,Sxc,Sc,Scr,umax,umin,xmax,xmin,ymax,ymin,nc,npred,ref,dist,x)
+    
 nx = size(A,1);
 ny = size(C,1);
 nu = size(B,2);
 
 %oblicz stany ustalone
-M = inv([C,zeros(ny,nu);A-eye(nx),B]);
-Kxr = M(1:nx,1:ny);
-Kur = M(nx+1:nx+ny,1:ny);
+M = inv([C,zeros(ny, nu);A-eye(nx),B]);
+Kxr = M(1:nx,1:ny); % nx × ny
+Kur = M(nx+1:nx+ny,1:ny); % nu × ny
 
-xss = Kxr * (ref-dist);
-uss = Kur * (ref-dist);
-xhat = x - xss;
+% Rozszerz referencje i zakłócenia na horyzont predykcji
+REF = ref;
+ref = REF(1:ny,1);
+DIST = dist;
+dist = DIST(1:ny,1);
 
-%przeprowadź predykcje oraz wyznacz ograniczenia
-[Px,Py,Pu,Hxc,Hyc,Huc,Qrx,Qry,Qru] = ompc_predictions(A,B,C,K,Kxr,Kur,nc,npred);
-[CC,d,dd] = ompc_constraints(Px,Py,Pu,Hxc,Hyc,Huc,Qrx,Qry,Qru,npred,umax,umin,ymax,ymin);
+% Oblicz stany ustalone i odchylenia
+xss = Kxr * (ref - dist); % nx × 1
+uss = Kur * (ref - dist); % nu × 1
+xhat = x - xss; % nx × 1
 
-%rozwiaz zadanie optymalizacji
-%x = quadprog(H,f,A,b,Aeq,beq,lb,ub,x0,options)
-%min 0.5*x'*H*x+f'*x, A*x <= b
-% f = x'*Sx*x + x'*Sxc*c + c'*Sc*c 
+% Predykcje oraz ograniczenia
+[Px, Py, Pu, Hxc, Hyc, Huc, Qrx, Qry, Qru] = ompc_predictions(A, B, C, K, Kxr, Kur, nc, npred);
+[CC, d, dd] = ompc_constraints(Px, Py, Pu, Hxc, Hyc, Huc, Qrx, Qry, Qru, npred, umax, umin, xmax, xmin, ymax, ymin);
 
-opt = optimoptions('quadprog','Algorithm','active-set');
-Sc=(Sc+Sc')/2;
-[ctrl,~,exitflag] = quadprog(Sc,xhat'*Sxc/2,CC,d + dd*[x;ref-dist],[],[],[],[],ctrl0,opt);
-if exitflag==-2
-    disp('No feasible solution');
+%--------------------------------------------------------------------------
+% Rozwiązanie problemu optymalizacji
+%--------------------------------------------------------------------------
+H = (Sc+Sc')/2;
+f = xhat' * Sxc + (REF-DIST)' * Scr';
+
+% Ograniczenia
+A = CC;
+b = d + dd * [x; ref - dist];
+Aeq = zeros(0,length(f'));
+beq = zeros(0,1);
+    
+% Opcje solvera
+ctrl0 = zeros(nc*nu,1);
+options = mpcInteriorPointOptions('double'); options.Display = 'off'; options.MaxIterations = 150; options.ConstraintTolerance = 5.0e-2; options.StepTolerance = 1.0e-5;
+[ctrl, ~, exitflag] = mpcInteriorPointSolver(H, f', A, b, Aeq, beq, ctrl0, options);
+
+% Sprawdź, czy rozwiązanie jest wykonalne
+if exitflag == 0
+    disp("The maximum number of iterations was reached. Solution x might be suboptimal or infeasible.");
+elseif exitflag == -1
+    disp("The problem appears to be infeasible.");
+elseif exitflag == -2
+    disp("An unrecoverable numerical error occurred.");
 end
 
+% Optymalne odchylenie sterowania
 c = ctrl;
-u = -K * xhat + uss + c(1:size(B,2),:);
+u = -K * xhat + uss + c(1:nu);
+
 end
-
-
-
