@@ -31,15 +31,15 @@ H = (Sc+Sc')/2;
 f = xhat' * Sxc + (REF-DIST)' * Scr';
 
 % Ograniczenia
-A = CC;
-b = d + dd * [x; ref - dist];
+Aineq = CC;
+bineq = d + dd * [x; ref - dist];
 Aeq = zeros(0,length(f'));
 beq = zeros(0,1);
     
 % Opcje solvera
 ctrl0 = zeros(nc*nu,1);
 options = mpcInteriorPointOptions('double'); options.Display = 'off'; options.MaxIterations = 150; options.ConstraintTolerance = 5.0e-2; options.StepTolerance = 1.0e-5;
-[ctrl, ~, exitflag] = mpcInteriorPointSolver(H, f', A, b, Aeq, beq, ctrl0, options);
+[ctrl, ~, exitflag] = mpcInteriorPointSolver(H, f', Aineq, bineq, Aeq, beq, ctrl0, options);
 
 % Sprawdź, czy rozwiązanie jest wykonalne
 if exitflag == 0

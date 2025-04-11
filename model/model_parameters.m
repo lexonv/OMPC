@@ -2,12 +2,13 @@ function [param,n] = model_parameters(vecNeighbors, area, H, flag, insulationsTa
 
 scale = coefficients(1); %skala siatki macierzy
 roofAngle = coefficients(4);
-cw = coefficients(10); % ciepło właściwe wody
-dw = coefficients(11); % gęstość wody
-kw = coefficients(12); % przewodność cieplna wody
-u = coefficients(13); % lepkość
-cp = coefficients(14);
-dp = coefficients(15);
+cw = coefficients(12); % ciepło właściwe wody
+dw = coefficients(13); % gęstość wody
+kw = coefficients(14); % przewodność cieplna wody
+u = coefficients(15); % lepkość
+cp = coefficients(16);
+dp = coefficients(17);
+k_tube = coefficients(18);
 
 %przeskaluj dane aby otrzymać odpowiednie długości w jednostkach SI
 area = scale^2 * area;
@@ -138,10 +139,16 @@ elseif Re >= 2300
     Pr = cw*u/kw; % Liczba Prandtla
     Nu = 0.023*Re^0.8 * Pr^0.3; % Liczba Nusselta
 end
-hw = kw/d*Nu; % współczynnik przyjmowania ciepła
+hw = kw/d*Nu;
 
+R_water = 1/(hw*pi*d); % Opór cieplny w przewodzeniu wody
 
-param = [Ca,Czi,Czo,Cwi,Cwo,Csi,Cso,Cp,Rz,Rw_vec,Rs,Rp,hw,Rb];
+%Opór cieplny rurki PEX
+R_tube = log(pipeDiameter/(pipeDiameter-2*pipeThickness))/(2*pi*k_tube); % Opór cieplny w przewodzeniu rurek
+
+U_conv = 1/(R_water + R_tube);
+
+param = [Ca,Czi,Czo,Cwi,Cwo,Csi,Cso,Cp,Rz,Rw_vec,Rs,Rp,U_conv,Rb];
 n = size(Rw_vec,2);
 end
 

@@ -4,7 +4,7 @@ nx = size(A,1);
 ny = size(C,1);
 nu = size(B,2);
 nuc = nu*nc;
-nua = nu*na;
+nya = ny*na;
 dmp_factor = 0.999999999;
 
 %--------------------------------------------------------------------------
@@ -23,15 +23,15 @@ Kur = M(nx+1:nx+ny,1:ny);
 %Zk+1 = Psi*Zk
 %uk = Kz*Zk
 ID = diag(ones(1,(nc-1)*nu)); ID = [zeros((nc-1)*nu,nu), ID]; ID = [ID;zeros(nu,nu*nc)];
-Dr = diag(ones(1,(na-1)*nu)); Dr = [zeros((na-1)*nu,nu), Dr]; Dr = [Dr;[zeros(nu,nu*(na-1)), dmp_factor*eye(nu)]]; 
+Dr = diag(ones(1,(na-1)*ny)); Dr = [zeros((na-1)*ny,ny), Dr]; Dr = [Dr;[zeros(ny,ny*(na-1)), dmp_factor*eye(ny)]]; 
 
-Psi = [A-B*K, [B zeros(nx,(nc-1)*nu)], [(eye(nx)-(A-B*K))*Kxr zeros(nx,nua-nu)];
-    zeros(nuc,nx), ID, zeros(nuc,nua);
-    zeros(nua,nx), zeros(nua,nuc), Dr];
+Psi = [A-B*K, [B zeros(nx,(nc-1)*nu)], [(eye(nx)-(A-B*K))*Kxr zeros(nx,nya-nu)];
+    zeros(nuc,nx), ID, zeros(nuc,nya);
+    zeros(nya,nx), zeros(nya,nuc), Dr];
 
-Kz = [-K,eye(nu),zeros(nu,(nc-1)*nu),[K*Kxr+Kur zeros(nu,nua-nu)]];
-Kxss = [eye(nx),zeros(nx,nuc),-Kxr,zeros(nx,nua-nu)];
-Kzss = Kz - [zeros(nu,nx),zeros(nu,nuc),[Kur,zeros(nu,nua-nu)]];
+Kz = [-K,eye(nu),zeros(nu,(nc-1)*nu),[K*Kxr+Kur zeros(nu,nya-nu)]];
+Kxss = [eye(nx),zeros(nx,nuc),-Kxr,zeros(nx,nya-nu)];
+Kzss = Kz - [zeros(nu,nx),zeros(nu,nuc),[Kur,zeros(nu,nya-nu)]];
 
 %--------------------------------------------------------------------------
 

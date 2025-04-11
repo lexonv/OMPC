@@ -36,13 +36,15 @@ scale = coefficients(1);
 h2 = coefficients(2); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku
 h1 = coefficients(3); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr)
 roofAngle = coefficients(4);
-Awin = coefficients(5)*eq(2,:); %powierzchnia okien
+Awin = eq(1,:)*coefficients(5)*eq(2,:); %powierzchnia okien
 Uwin = coefficients(6);
-k = coefficients(7); %współczynnik proporcjonalności energii przechodzącej do całkowitej
+gamma = coefficients(7); %współczynnik proporcjonalności energii przechodzącej do całkowitej
 SC = coefficients(8); %współczynnik zacienienia okna
-alpha = coefficients(9); %współczynnik absorpcji ściany (zależny od koloru)
-cw = coefficients(10);
-dw = coefficients(11);
+alpha_wall = coefficients(9); %współczynnik absorpcji ściany (zależny od koloru)
+alpha_floor = coefficients(10);
+alpha_air = coefficients(11);
+cw = coefficients(12);
+dw = coefficients(13);
 %f - orientacja
 
 %przeskaluj dane
@@ -74,7 +76,7 @@ Rz = param(7+2*n);
 Rw = param(8+2*n:8+2*n+(n-1));
 Rs = param(8+3*n);
 Rp = param(9+3*n);
-hw = param(10+3*n);
+U_conv = param(10+3*n);
 Rb = param(11+3*n);
 
 %czy ściana zewnętrzna posiada okno
@@ -169,30 +171,30 @@ if flag == 0
     roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs*1/Cso -(roofArea/(Rp+Rso)/Cso + roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(hw*area + h2*area + area/(Rp+Rb)) hw*area/Cp];
+    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rb)) U_conv*area/Cp];
 elseif flag == 1
     % jeżeli sekcja znajduje się na drugim -> przedostatnim piętrze budynku wielopiętrowego
     roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(roofArea/(Rp+Rso)/Cso + roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(hw*area + h2*area + area/(Rp+Rso)) hw*area/Cp];
+    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rso)) U_conv*area/Cp];
 elseif flag == 2
     % jeżeli sekcja znajduje się na ostatnim piętrze budynku wielopiętrowego
     roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h1*roofArea/Cso + roofArea/Rs/Cso) 0 0];
     
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(hw*area + h2*area + area/(Rp+Rso)) hw*area/Cp];
+    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rso)) U_conv*area/Cp];
 elseif flag == -1
     % jeżeli sekcja znajduje się w budynku jednopiętrowym
     roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h1*roofArea/Cso + roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(hw*area + h2*area + area/(Rp+Rb)) hw*area/Cp];
+    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rb)) U_conv*area/Cp];
 end
 
 %-----------
 d = eq(5); % rozstaw rur [m]
-L_total = 1.2*area/d;
+L_total = 1.1*area/d;
 pipeDiameter = eq(3);
 pipeThickness = eq(4);
 Vwater = pi*((pipeDiameter - 2*pipeThickness)/2)^2 * L_total;
@@ -230,8 +232,9 @@ D = 0;
 % 3) temperatura podłoża [K],
 % 4) straty/zyski energii (moc cieplna) [W]
 
-coeffRoom = 1/Ca*Awin*k*SC;
-coeffWall = 1/Czo*L*H*alpha;
+coeffRoom = 1/Ca*Awin*SC*(1-gamma)*alpha_air;
+coeffFloor = 1/Cp*Awin*SC*gamma*alpha_floor;
+coeffWall = 1/Czo*(L*H - Awin)*alpha_wall;
 
 %Sprawdź czy parametry nie są zerowe, wynoszą Inf albo NaN
 %sprawdzenie czy tworzona sekcja posiada jedynie ściany wewnętrzne
@@ -283,7 +286,7 @@ else
         zeros(2*n,4);
         0 0 0 0;
         0 0 0 0;
-        0 0 area/(Rp+Rb)/Cp 0;
+        0 coeffFloor area/(Rp+Rb)/Cp 0;
         0 0 0 0];
     elseif flag == 1
         Z = [0 coeffRoom 0 1/Ca;
@@ -292,7 +295,7 @@ else
         zeros(2*n,4);
         0 0 0 0;
         0 0 0 0;
-        0 0 0 0;
+        0 coeffFloor 0 0;
         0 0 0 0];
     elseif flag == 2
         Z = [0 coeffRoom 0 1/Ca;
@@ -301,7 +304,7 @@ else
         zeros(2*n,4);
         0 0 0 0;
         h1*roofArea/Cso 0 0 0;
-        0 0 0 0;
+        0 coeffFloor 0 0;
         0 0 0 0];
     elseif flag == -1
         Z = [0 coeffRoom 0 1/Ca;
@@ -310,7 +313,7 @@ else
         zeros(2*n,4);
         0 0 0 0;
         h1*roofArea/Cso 0 0 0;
-        0 0 area/(Rp+Rb)/Cp 0;
+        0 coeffFloor area/(Rp+Rb)/Cp 0;
         0 0 0 0];
     end
 end

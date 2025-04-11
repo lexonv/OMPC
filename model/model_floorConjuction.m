@@ -77,8 +77,8 @@ for i = 1:size(lowerWallsEnum,1)
             
             scale = coefficients(1);
             h1 = coefficients(2);
-            cp = coefficients(14);
-            dp = coefficients(15);
+            cp = coefficients(16);
+            dp = coefficients(17);
             W = vecNeighbors(i,j) * scale;
             area = vecArea(i) * scale^2;
             Ca = cp * dp * area * H;
