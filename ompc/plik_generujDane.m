@@ -93,6 +93,7 @@ roomEquipment = table(level1Equipment,level2Equipment);
 nx = size(A,1); nu = size(B,2); ny = size(C,1); nz = size(Z,2);
 %--------------------------------------------------------------------------
 %%
+%Parametry strojenia regulatora
 
 %model dyskretny
 Ts = 720;
@@ -119,13 +120,12 @@ trajDist = [-3.0 -3.5 -4.0 -4.5 -5.0 -4.5 -4.0 -3.0 -1.0 1.0 3.0 4.0 5.0 4.5 4.0
 trajDist = [trajDist;zeros(nz-size(trajDist,1),size(trajDist,2))];
 %--------------------------------------------------------------------------
 %%
-
 %Ograniczenia oraz warunki początkowe
 Ta0 = 20; %temperatura sekcji
 Tzi0 = 20; Tzo0 = 5; %temperatury wewnętrzna/zewnętrza ściany zewnętrznej
 Twi0 = 20; Two0 = 20; %temperatury wewnętrzna/zewnętrza ściany wewnętrznej
 Tp0 = 20; %temperatura podłogi
-T_return0 = 24;
+T_return0 = 20;
 
 Ta_max = 25; Ta_min = 0; %ograniczenia temp. pomieszczen
 Twall_max = 100; Twall_min = -100; %ograniczenia temp. scian
@@ -144,9 +144,8 @@ ymax = Ta_max*ones(ny,1);
 ymin = Ta_min*ones(ny,1);
 %--------------------------------------------------------------------------
 %%
-%wygeneruj dane do regulatora
-% [K,Sx,Sxc,Sc] = ompc_cost(Ad,Bd,Q,R,nc);
-[K,Sx,Sxc,Sxr,Sc,Sr,Scr] = ompc_cost_tracking(Ad,Bd,Cd,Q,R,nc,na);
+%Wygeneruj dane do regulatora
+[K,Sx,Sxc,Sxr,Sc,Sr,Scr] = ompc_cost(Ad,Bd,Cd,Q,R,nc,na);
 
 %--------------------------------------------------------------------------
 %%
