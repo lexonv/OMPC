@@ -41,40 +41,8 @@
 %
 % Kolejność sekcji w macierzy A, B, C, Z jest numeryczna, tzn. na pierwszym miejscu
 % jest sekcja 0, potem sekcja 1, 2, 3 itd.
-%
-% parametr scaleLength - decyduje o rozdziałce macierzy (długości)
-% parametr H - decyduje o wysokości sekcji (np. wysokość piętra)
-% przykładowo:
-% dla scaleLength = 1 pojedyncze pole w macierzy to 1x1 [m]
-% dla scaleLength = 0.5 pojedyncze pole w macierzy to 0.5x0.5 [m]
-% dla scaleLength = 0.25 pojedyncze pole w macierzy to 0.25x0.25 [m]
-% scaleLength dotyczy macierzy/wektorów:
-%   1) vecArea (pole sekcji)
-%   2) vecNeighbors (sąsiedztwa sekcji oraz długości ścian)
 
-% matrix = [0 0 2 2; 1 1 3 2; 1 3 3 4; 1 3 3 4];
-% materialThickness = [0.07 0.0125 0.25 0.0125]; materialDensity = [30 1050 30 1050]; materialSpecificHeat = [1500 1200 1200 1200]; materialThermalCoeff = [0.035 0.45 0.045 0.45];
-% insulationExternal = [materialThickness;materialDensity;materialSpecificHeat;materialThermalCoeff];
-% 
-% materialThickness = [0.0125 0.05 0.0125]; materialDensity = [1050 700 1050]; materialSpecificHeat = [1200 1600 1200]; materialThermalCoeff = [0.45 0.15 0.45];
-% insulationInternal = [materialThickness;materialDensity;materialSpecificHeat;materialThermalCoeff];
-% 
-% materialThickness = [0.005 0.0125]; materialDensity = [1800 2000]; materialSpecificHeat = [1000 840]; materialThermalCoeff = [0.2 1.4];
-% insulationFloor = [materialThickness;materialDensity;materialSpecificHeat;materialThermalCoeff];
-% 
-% materialThickness = [0.05 0.0125 0.25 0.0125]; materialDensity = [30 1050 2500 1050]; materialSpecificHeat = [1500 1200 1000 1200]; materialThermalCoeff = [0.035 0.45 1.5 0.45];
-% insulationCeiling = [materialThickness;materialDensity;materialSpecificHeat;materialThermalCoeff];
-% 
-% materialThickness = [0.07 0.0125 0.25 0.0125]; materialDensity = [30 1050 30 1050]; materialSpecificHeat = [1500 1200 1200 1200]; materialThermalCoeff = [0.035 0.45 0.045 0.45];
-% insulationRoof = [materialThickness;materialDensity;materialSpecificHeat;materialThermalCoeff];
-% 
-% insulationTable = table(insulationExternal, insulationInternal, insulationFloor, insulationCeiling, insulationRoof);
-% H = 1;
-% flag = -1;
-% [A,B,C,D,Z,vecStatesNum] = generateFloor(matrix, H, insulationTable, coefficients, flag);
-
-
-function [A,B,C,D,Z,vecStatesNum,exteriorWaLLStates] = generateFloor(matrix, H, insulations, coefficients, equipment, flag)
+function [A,B,C,D,Z,vecStatesNum,exteriorWallStates,unheatedZonesFloor] = generateFloor(matrix, H, insulations, coefficients, equipment, flag)
 
 %wprowadź otoczenie do macierzy (wartości -1 na obrysach macierzy jako otoczenie zewnętrzne)
 n = size(matrix,1);
@@ -89,7 +57,7 @@ col = size(matrix,2);
 row = size(matrix,1);
 
 %------------------------
-%kolejność [0 -1 [sekcje ogrzewane]]
+%kolejność [-1 0 [strefy grzewcze]]
 sections = reshape(matrix,1,[]);
 sections = transpose(sections);
 sections = sections.';
@@ -245,10 +213,10 @@ n = n+1;
     end
 end
 
-%Generacja modeli sekcji (ster. temp.)
+%Generacja modeli stref grzewczych (ster. temp.)
 %param - wektor parametrow
 %vecNeighbors - wektor dlugosci (powierzchni) scian sasiadujacych
-%vecArea - wektor powierzchni sekcji
+%vecArea - wektor powierzchni stref
 %sekcje rozpoczynają się od indeksu "3"
 A = [];
 B = [];
@@ -256,17 +224,16 @@ C = [];
 D = [];
 Z = [];
 vecStatesNum = []; %zapis liczby stanów
+unheatedZonesFloor = []; %które strefy są nieogrzewane
 m = 1;
-%wygeneruj sekcje dla której nie będzie realizowane ogrzewanie (może to być np. korytarz)
-%indeks takiej sekcji to 2 i oznakowane jest jako 0. Główna różnica jest w
-%macierzy B, ponieważ nie istnieje wejście dla tej sekcji. Jeżeli wektor vecNeighbors jest
-%zerowy (tzn. nie ma w budynku sekcji nieogrzewanej), to pomiń jej tworzenie.
 
+% Sprawdź czy piętro posiada strefy nieogrzewane (oznaczone jako "0")
 if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
-    %piętro nie posiada sekcji zerowej
+    % piętro nie posiada strefy nieogrzewanej ("0")
 else
+    % wygeneruj model strefy nieogrzewanej ("0")
     eq = equipment(:,m); m = m+1;
-    [param,n] = model_parameters(vecNeighbors(2,:), vecArea(1,2), H, flag, insulations, coefficients,eq);
+    [param,n] = genRoomParams(vecNeighbors(2,:), vecArea(1,2), H, flag, insulations, coefficients, eq);
     [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(2,:),vecArea(1,2),"nieogrzewana",flag,insulations,coefficients,eq);
     nA = size(A,1); nAm = size(Am,1);
     nB = size(B,2); nBm = size(Bm,1);
@@ -274,18 +241,19 @@ else
     nZ = size(Z,1); nZcol = size(Z,2); nZm = size(Zm,1);
 
     A = [Am zeros(nAm, nA); zeros(nA, nAm) A];
-    B = [zeros(nBm,nB); B];  
-    C = [zeros(nC,nCm);C];
+    B = [zeros(nBm,nB); B]; % strefa "0" nie posiada wejścia!
+    C = [zeros(nC,nCm);C]; % strefa "0" nie posiada wyjścia!
     D = Dm;
     Z = [Z zeros(nZ,1); Zm(:,1:3) zeros(nZm,nZcol-3) Zm(:,4)];
+    unheatedZonesFloor = [unheatedZonesFloor 1];
     vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
 end
 
-%Wygeneruj pozostałe sekcje
+% Wygeneruj pozostałe strefy grzewcze (od "1" do końca)
 for i = 3:size(vecNeighbors,2)
     eq = equipment(:,m); m = m+1;
-    [param,n] = model_parameters(vecNeighbors(i,:), vecArea(1,i), H, flag, insulations, coefficients, eq);
-    [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(i,:),vecArea(1,i),"sekcja",flag,insulations,coefficients,eq);
+    [param,n] = genRoomParams(vecNeighbors(i,:), vecArea(1,i), H, flag, insulations, coefficients, eq);
+    [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(i,:),vecArea(1,i),"ogrzewana",flag,insulations,coefficients,eq);
     nA = size(A,1); nAm = size(Am,1);
     nB = size(B,2); nBm = size(Bm,2);
     nC = size(C,1); nCm = size(Cm,1);
@@ -295,9 +263,11 @@ for i = 3:size(vecNeighbors,2)
     C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
     D = Dm;
     Z = [Z zeros(nZ,1); Zm(:,1:3) zeros(nZm,nZcol-3) Zm(:,4)];
+    unheatedZonesFloor = [unheatedZonesFloor 0];
     vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
 end
-vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy sie zgadzaly
+
+vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy wskazywały na temperatury pomieszczeń
 
 %Upraszczanie modelu i łączenie sekcji tworzących piętro budynku:
 % - vecNeighbors przechowuje informacje na temat ilości ścian wewnętrznych
@@ -308,27 +278,28 @@ vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy sie zgadzaly
 
 if size(vecStatesNum,2) > 1
     if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
-        %Jeżeli model nie zawiera sekcji nieogrzewanych (oznaczonych jako 0):
+        %Jeżeli piętro nie zawiera stref nieogrzewanych (strefa "0"):
         innerSections = vecNeighbors(3:end,1);
-        [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(3:end,3:end),vecArea(3:end),H,insulations,coefficients,vecStatesNum,innerSections);
+        [A,B,C,Z,vecStatesNum] = mergeRoomModels(A,B,C,Z,vecNeighbors(3:end,3:end),vecArea(3:end),H,insulations,coefficients,vecStatesNum,innerSections);
     else
-        %Jeżeli model zawiera sekcje nieogrzewane (oznaczone jako 0):
+        %Jeżeli piętro zawiera strefę nieogrzewaną (strefa "0"):
         innerSections = vecNeighbors(2:end,1);
-        [A,B,C,Z,vecStatesNum] = model_floorConjuction(A,B,C,Z,vecNeighbors(2:end,2:end),vecArea(2:end),H,insulations,coefficients,vecStatesNum,innerSections);
+        [A,B,C,Z,vecStatesNum] = mergeRoomModels(A,B,C,Z,vecNeighbors(2:end,2:end),vecArea(2:end),H,insulations,coefficients,vecStatesNum,innerSections);
     end
 end
 
 % Wygeneruj wektor przechowujący informację które pomieszczenia posiadają
 % ściany zewnętrzne
-exteriorWaLLStates = [];
+exteriorWallStates = [];
 for i = 2:size(vecNeighbors,1)
     if vecNeighbors(i,:) == zeros(1,size(vecNeighbors,2))
+        % Pomijaj stręfę "0" jeżeli nie istnieje
     else
         check = vecNeighbors(i,1);
         if check > 0
-            exteriorWaLLStates = [exteriorWaLLStates 1];
+            exteriorWallStates = [exteriorWallStates 1];
         else
-            exteriorWaLLStates = [exteriorWaLLStates 0];
+            exteriorWallStates = [exteriorWallStates 0];
         end
     end
 end

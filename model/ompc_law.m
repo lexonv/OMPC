@@ -34,8 +34,10 @@ ctrl0 = zeros(nc*nu,1);
 options = mpcInteriorPointOptions('double'); 
 options.Display = 'off'; 
 options.MaxIterations = 150; 
-options.ConstraintTolerance = 5.0e-2; 
-options.StepTolerance = 1.0e-5;
+options.ConstraintTolerance = 5.0e-1; 
+options.StepTolerance = 1.0e-8;
+options.OptimalityTolerance = 1.0e-2;
+options.ComplementarityTolerance = 1.0e-4;
 
 [ctrl, ~, exitflag] = mpcInteriorPointSolver(H, f', Aineq, bineq, Aeq, beq, ctrl0, options);
 

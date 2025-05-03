@@ -1,4 +1,4 @@
-function [x0,xmax,xmin] = initialStates(A,statesInit, statesConstr, statesIndex, exWalls, roofSt)
+function [x0,xmax,xmin] = initialStates(nx,statesInit, statesConstr, statesIndex, exWalls, unheatedZones, roofSt)
 
 Ta0 = statesInit(1); %temperatura sekcji
 Tzi0 = statesInit(2); Tzo0 = statesInit(3); %temperatury wewnętrzna/zewnętrza ściany zewnętrznej
@@ -11,7 +11,6 @@ Twall_max = statesConstr(3); Twall_min = statesConstr(4); %ograniczenia temp. sc
 Tp_max = statesConstr(5); Tp_min = statesConstr(6); %ograniczenia temp. podlogi
 T_return_max = statesConstr(7); T_return_min = statesConstr(8);
 N = statesIndex;
-nx = size(A,1);
 
 x0 = [];
 xmax = [];
@@ -21,6 +20,7 @@ for i = 2:size(N,2)
     n = N(i);
     cnt = ((n - m) - 5 )/2; %liczba ścian zewnętrznych + wewnętrznych
     exwall = exWalls(i-1);
+    unheated = unheatedZones(i-1);
     roof = roofSt(i-1);
     states0 = [];
     xmax0 = [];
@@ -36,13 +36,25 @@ for i = 2:size(N,2)
             xmin0 = [xmin0 Twall_min Twall_min];
         end
         if roof == 1
-            x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         else
-            x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         end
     else
     for j = 1:cnt
@@ -51,19 +63,32 @@ for i = 2:size(N,2)
         xmin0 = [xmin0 Twall_min Twall_min];
     end
         if roof == 1
-            x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         else
-            x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         end
     end
 end
 
 cnt = ((nx - size(x0,2))-4)/2;
 exwall = exWalls(end);
+unheated = unheatedZones(end);
 roof = roofSt(end);
 states0 = [];
 xmax0 = [];
@@ -78,13 +103,25 @@ if exwall == 1
             xmin0 = [xmin0 Twall_min Twall_min];
         end
         if roof == 1
-            x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         else
-            x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         end
 else
     for j = 1:cnt
@@ -93,13 +130,25 @@ else
         xmin0 = [xmin0 Twall_min Twall_min];
     end
         if roof == 1
-            x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Tzi0 Tzo0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         else
-            x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
-            xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
-            xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            if unheated == 1
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min]];
+            else
+                x0 = [x0 [Ta0 states0 Twi0 Two0 Tp0 T_return0]];
+                xmax = [xmax [Ta_max xmax0 Twall_max Twall_max Tp_max T_return_max]];
+                xmin = [xmin [Ta_min xmin0 Twall_min Twall_min Tp_min T_return_min]];
+            end
         end
 end
 x0 = x0';

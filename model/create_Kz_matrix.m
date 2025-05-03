@@ -1,4 +1,7 @@
-function Kz = create_Kz_matrix(A, C, Z, na)
+function Kz = create_Kz_matrix(A, C, Z, na) 
+
+%Macierz Kz reprezentuje wpływ zakłóceń na wyjścia Y = Kz * DIST 
+
 [nx, ~] = size(A);
 [ny, ~] = size(C);
 [~, nd] = size(Z);
