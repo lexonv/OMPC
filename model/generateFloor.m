@@ -39,10 +39,10 @@
 % Sekcje rozdzielone (sekcja nr 2), czyli bezpośrednio niełączące się w całość
 % interpretowane są jako jedna sekcja.
 %
-% Kolejność sekcji w macierzy A, B, C, Z jest numeryczna, tzn. na pierwszym miejscu
+% Kolejność sekcji w macierzy A, B, C, Z jest w chronologii numerycznej, tzn. na pierwszym miejscu
 % jest sekcja 0, potem sekcja 1, 2, 3 itd.
 
-function [A,B,C,D,Z,vecStatesNum,exteriorWallStates,unheatedZonesFloor] = generateFloor(matrix, H, insulations, coefficients, equipment, flag)
+function [A,B,C,D,Z,vecStatesNum,exteriorWallStates,vecArea,vecUnheatedZones] = generateFloor(matrix, H, insulations, coefficients, equipment, floorType)
 
 %wprowadź otoczenie do macierzy (wartości -1 na obrysach macierzy jako otoczenie zewnętrzne)
 n = size(matrix,1);
@@ -213,47 +213,52 @@ n = n+1;
     end
 end
 
-%Generacja modeli stref grzewczych (ster. temp.)
+%--------------------------------------------------------------------------
+
+%Generacja modeli stref grzewczych (sterowane temperaturą wody)
 %param - wektor parametrow
 %vecNeighbors - wektor dlugosci (powierzchni) scian sasiadujacych
 %vecArea - wektor powierzchni stref
-%sekcje rozpoczynają się od indeksu "3"
+%strefy grzewcze rozpoczynają się od indeksu "3"
 A = [];
 B = [];
 C = [];
 D = [];
 Z = [];
 vecStatesNum = []; %zapis liczby stanów
-unheatedZonesFloor = []; %które strefy są nieogrzewane
-m = 1;
+vecUnheatedZones = [];
+m = 1; %indeks strefy na piętrze
 
-% Sprawdź czy piętro posiada strefy nieogrzewane (oznaczone jako "0")
+% Sprawdź czy piętro posiada strefę nieogrzewaną (oznaczoną jako "0")
 if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
-    % piętro nie posiada strefy nieogrzewanej ("0")
+    is_unheated = 0;
 else
-    % wygeneruj model strefy nieogrzewanej ("0")
-    eq = equipment(:,m); m = m+1;
-    [param,n] = genRoomParams(vecNeighbors(2,:), vecArea(1,2), H, flag, insulations, coefficients, eq);
-    [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(2,:),vecArea(1,2),"nieogrzewana",flag,insulations,coefficients,eq);
-    nA = size(A,1); nAm = size(Am,1);
-    nB = size(B,2); nBm = size(Bm,1);
-    nC = size(C,1); nCm = size(Cm,1);
-    nZ = size(Z,1); nZcol = size(Z,2); nZm = size(Zm,1);
-
-    A = [Am zeros(nAm, nA); zeros(nA, nAm) A];
-    B = [zeros(nBm,nB); B]; % strefa "0" nie posiada wejścia!
-    C = [zeros(nC,nCm);C]; % strefa "0" nie posiada wyjścia!
-    D = Dm;
-    Z = [Z zeros(nZ,1); Zm(:,1:3) zeros(nZm,nZcol-3) Zm(:,4)];
-    unheatedZonesFloor = [unheatedZonesFloor 1];
-    vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
+    is_unheated = 1;
 end
 
-% Wygeneruj pozostałe strefy grzewcze (od "1" do końca)
+% Wygeneruj model strefy nieogrzewanej (jeżeli istnieje)
+if is_unheated == 1
+    eq = equipment(:,m); m = m+1;
+    is_controlled = 0;
+    [param,n] = generateParameters(vecNeighbors(2,:), vecArea(1,2), H, floorType, insulations, coefficients, eq);
+    [Am,~,~,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(2,:),vecArea(1,2),is_controlled,floorType,insulations,coefficients,eq);
+    nA = size(A,1); nAm = size(Am,1);
+    nZ = size(Z,1); nZcol = size(Z,2); nZm = size(Zm,1);
+    A = [A zeros(nA, nAm); zeros(nAm, nA) Am];
+    B = [];  
+    C = []; 
+    D = Dm;
+    Z = [Z zeros(nZ,1); Zm(:,1:6) zeros(nZm,nZcol-6) Zm(:,7)];
+    vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
+    vecUnheatedZones = [vecUnheatedZones 1];
+end
+
+% Wygeneruj modele stref grzewczych (od strefy "1" do "N")
 for i = 3:size(vecNeighbors,2)
     eq = equipment(:,m); m = m+1;
-    [param,n] = genRoomParams(vecNeighbors(i,:), vecArea(1,i), H, flag, insulations, coefficients, eq);
-    [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(i,:),vecArea(1,i),"ogrzewana",flag,insulations,coefficients,eq);
+    is_controlled = 1;
+    [param,n] = generateParameters(vecNeighbors(i,:), vecArea(1,i), H, floorType, insulations, coefficients, eq);
+    [Am,Bm,Cm,Dm,Zm] = generateRoom(param,n,H,vecNeighbors(i,:),vecArea(1,i),is_controlled,floorType,insulations,coefficients,eq);
     nA = size(A,1); nAm = size(Am,1);
     nB = size(B,2); nBm = size(Bm,2);
     nC = size(C,1); nCm = size(Cm,1);
@@ -262,9 +267,9 @@ for i = 3:size(vecNeighbors,2)
     B = [B zeros(nA, nBm); zeros(nAm, nB) Bm];  
     C = [C zeros(nC, nAm); zeros(nCm, nA) Cm]; 
     D = Dm;
-    Z = [Z zeros(nZ,1); Zm(:,1:3) zeros(nZm,nZcol-3) Zm(:,4)];
-    unheatedZonesFloor = [unheatedZonesFloor 0];
+    Z = [Z zeros(nZ,1); Zm(:,1:6) zeros(nZm,nZcol-6) Zm(:,7)];
     vecStatesNum = [vecStatesNum size(A,1)-size(Am,1)];
+    vecUnheatedZones = [vecUnheatedZones 0];
 end
 
 vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy wskazywały na temperatury pomieszczeń
@@ -276,20 +281,18 @@ vecStatesNum = vecStatesNum + 1; %przesun o jeden aby indeksy wskazywały na tem
 % - Wiersz drugi zostanie obsłużony na końcu - dotyczy sekcji budynku nieposiadającej ogrzewania
 % - Jeżeli piętro posiada tylko jedno pomieszczenie, pomiń łączenie
 
-if size(vecStatesNum,2) > 1
-    if vecNeighbors(2,:) == zeros(1,size(vecNeighbors,2))
-        %Jeżeli piętro nie zawiera stref nieogrzewanych (strefa "0"):
+%Połącz strefy w piętro (jeżeli jest więcej niż jedna strefa grzewcza)
+if size(sections,2) > 3
+    if is_unheated == 0
         innerSections = vecNeighbors(3:end,1);
-        [A,B,C,Z,vecStatesNum] = mergeRoomModels(A,B,C,Z,vecNeighbors(3:end,3:end),vecArea(3:end),H,insulations,coefficients,vecStatesNum,innerSections);
-    else
-        %Jeżeli piętro zawiera strefę nieogrzewaną (strefa "0"):
+        [A,B,C,Z,vecStatesNum] = mergeZoneModels(A,B,C,Z,vecNeighbors(3:end,3:end),vecArea(3:end),H,insulations,coefficients,vecStatesNum,innerSections);
+    elseif is_unheated == 1
         innerSections = vecNeighbors(2:end,1);
-        [A,B,C,Z,vecStatesNum] = mergeRoomModels(A,B,C,Z,vecNeighbors(2:end,2:end),vecArea(2:end),H,insulations,coefficients,vecStatesNum,innerSections);
+        [A,B,C,Z,vecStatesNum] = mergeZoneModels(A,B,C,Z,vecNeighbors(2:end,2:end),vecArea(2:end),H,insulations,coefficients,vecStatesNum,innerSections);
     end
 end
 
-% Wygeneruj wektor przechowujący informację które pomieszczenia posiadają
-% ściany zewnętrzne
+% Wygeneruj wektor przechowujący informację które pomieszczenia posiadają ściany zewnętrzne
 exteriorWallStates = [];
 for i = 2:size(vecNeighbors,1)
     if vecNeighbors(i,:) == zeros(1,size(vecNeighbors,2))
@@ -304,4 +307,10 @@ for i = 2:size(vecNeighbors,1)
     end
 end
 
+% Prześlij pola powierzchni stref do "generateBuilding"
+if is_unheated == 0
+    vecArea = vecArea(3:end);
+else
+    vecArea = vecArea(2:end);
+end
 end

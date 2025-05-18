@@ -1,4 +1,4 @@
-%"strefa" - odrębna przestrzeń w budynku dla której realizujemy regulację temperatury
+%strefa - odrębna przestrzeń w budynku dla której realizujemy regulację temperatury
 
 %przyjęta kolejność stanów:
 %temperatura pomieszczenia (strefy grzewczej)
@@ -27,29 +27,31 @@
 %11. opór cieplny stropu/sufitu
 %12. opór cieplny podłogi
 %13. opór cieplny wody powracającej
-%14. pojemność cieplna wody w systemie 
+%14. pojemność cieplna wody w strefie 
 
-function [A,B,C,D,Z] = generateRoom(param, n, H, vecNeighbors, area, typ, flag, insulationsTable, coefficients, eq)
+function [A,B,C,D,Z] = generateRoom(param, n, H, vecNeighbors, area, is_controlled, floorType, insulationsTable, coefficients, eq)
 
 %stałe parametry
 scale = coefficients(1);
-h2 = coefficients(2); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku
-h1 = coefficients(3); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr)
+h1 = coefficients(2); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku
+h2 = coefficients(3); %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr)
 roofAngle = coefficients(4);
-Awin = eq(1,:)*coefficients(5)*eq(2,:); %powierzchnia okien
+AwinN = eq(1,:)*coefficients(5); %powierzchnia okien północnych
+AwinS = eq(2,:)*coefficients(5); %powierzchnia okien południowych
+AwinE = eq(3,:)*coefficients(5); %powierzchnia okien wschodnich
+AwinW = eq(4,:)*coefficients(5); %powierzchnia okien zachodnich
 Uwin = coefficients(6);
-SC = coefficients(8); %współczynnik zacienienia okna
-alpha_wall = coefficients(9); %współczynnik absorpcji ściany (zależny od koloru)
-alpha_floor = coefficients(10);
-cw = coefficients(12);
-dw = coefficients(13);
+SHGC = coefficients(7); %Solar Heat Gain Coefficient
+alpha_floor = coefficients(8);
+cw = coefficients(9);
+dw = coefficients(10);
 
 %przeskaluj dane
 area = scale^2 * area;
 vecNeighbors = scale * vecNeighbors;
 
-%dach ze skosem (dla budynku z 1 piętrem lub dla ostatniego piętra)
-if flag == -1 || flag == 2
+%dach ze skosem (dla budynku z jednym piętrem lub dla ostatniego piętra)
+if floorType == -1 || floorType == 2
     alphaRad = roofAngle/180*pi;
     if mod(roofAngle,180) == 0
         roofArea = area;
@@ -77,11 +79,12 @@ Rp = param(9+3*n);
 U_conv = param(10+3*n);
 Rb = param(11+3*n);
 
-% Czy ściana zewnętrzna strefy posiada okno?
+%--------------------------------------------------------------------------
+% Czy ściana zewnętrzna strefy posiada okno północne?
 if eq(1,:) == 1
 
     % Zaktualizuj opór cieplny wprowadzając opór okna
-    Uz = (L*H-Awin)/(L*H)*1/Rz + Awin/(L*H)*Uwin;
+    Uz = (L*H-AwinN)/(L*H)*1/Rz + AwinN/(L*H)*Uwin;
     Rz = 1/Uz;
 
     vecParam = table2array(insulationsTable(:,1));
@@ -95,9 +98,76 @@ if eq(1,:) == 1
     end
 
     % Zaktualizuj pojemności cieplne usuwając objętość okna
-    Czi = Czi - (sum(vecParam(1,1:idx-1) * vecParam(2,1:idx-1)' * vecParam(3,1:idx-1)) + abs(l_mid - sum(vecParam(1,1:idx-1)))*vecParam(2,idx)*vecParam(3,idx))*Awin*eq(2,:);
-    Czo = Czo - (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*Awin*eq(2,:);
+    Czi = Czi - (sum(vecParam(1,1:idx-1) * vecParam(2,1:idx-1)' * vecParam(3,1:idx-1)) + abs(l_mid - sum(vecParam(1,1:idx-1)))*vecParam(2,idx)*vecParam(3,idx))*AwinN;
+    Czo = Czo - (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*AwinN;
 end
+
+%Czy ściana zewnętrzna posiada okno południowe?
+if eq(2,:) >= 1
+
+    % Zaktualizuj opór cieplny wprowadzając opór okna
+    Uz = (L*H-AwinS)/(L*H)*1/Rz + AwinS/(L*H)*Uwin;
+    Rz = 1/Uz;
+
+    vecParam = table2array(insulationsTable(:,1));
+    l_mid = sum(vecParam(1,:))/2;
+    val = 0; idx = 0;
+    for i = 1:size(vecParam(1,:),2)
+        if val <= l_mid
+            val = val + vecParam(1,i);
+            idx = idx + 1;
+        end
+    end
+
+    % Zaktualizuj pojemności cieplne usuwając objętość okna
+    Czi = Czi - (sum(vecParam(1,1:idx-1) * vecParam(2,1:idx-1)' * vecParam(3,1:idx-1)) + abs(l_mid - sum(vecParam(1,1:idx-1)))*vecParam(2,idx)*vecParam(3,idx))*AwinS;
+    Czo = Czo - (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*AwinS;
+end
+
+%Czy ściana zewnętrzna posiada okna wschodnie
+if eq(3,:) >= 1
+
+    % Zaktualizuj opór cieplny wprowadzając opór okna
+    Uz = (L*H-AwinE)/(L*H)*1/Rz + AwinE/(L*H)*Uwin;
+    Rz = 1/Uz;
+
+    vecParam = table2array(insulationsTable(:,1));
+    l_mid = sum(vecParam(1,:))/2;
+    val = 0; idx = 0;
+    for i = 1:size(vecParam(1,:),2)
+        if val <= l_mid
+            val = val + vecParam(1,i);
+            idx = idx + 1;
+        end
+    end
+
+    % Zaktualizuj pojemności cieplne usuwając objętość okna
+    Czi = Czi - (sum(vecParam(1,1:idx-1) * vecParam(2,1:idx-1)' * vecParam(3,1:idx-1)) + abs(l_mid - sum(vecParam(1,1:idx-1)))*vecParam(2,idx)*vecParam(3,idx))*AwinE;
+    Czo = Czo - (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*AwinE;
+end
+
+% Czy ściana zewnętrzna posiada okna zachodnie
+if eq(4,:) >= 1
+
+    % Zaktualizuj opór cieplny wprowadzając opór okna
+    Uz = (L*H-AwinW)/(L*H)*1/Rz + AwinW/(L*H)*Uwin;
+    Rz = 1/Uz;
+
+    vecParam = table2array(insulationsTable(:,1));
+    l_mid = sum(vecParam(1,:))/2;
+    val = 0; idx = 0;
+    for i = 1:size(vecParam(1,:),2)
+        if val <= l_mid
+            val = val + vecParam(1,i);
+            idx = idx + 1;
+        end
+    end
+
+    % Zaktualizuj pojemności cieplne usuwając objętość okna
+    Czi = Czi - (sum(vecParam(1,1:idx-1) * vecParam(2,1:idx-1)' * vecParam(3,1:idx-1)) + abs(l_mid - sum(vecParam(1,1:idx-1)))*vecParam(2,idx)*vecParam(3,idx))*AwinW;
+    Czo = Czo - (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*AwinW;
+end
+%--------------------------------------------------------------------------
 
 % Sformatuj wektor vecNeighbors w taki sposób, aby usunąć wszystkie 
 % zerowe wartości, nie zmieniając kolejności!
@@ -119,20 +189,20 @@ vecNeighbors = new_vecNeighbors;
 
 sectionEq_p1 = 0;
 for i = 1:n
-    sectionEq_p1 = sectionEq_p1 + (h2*(vecNeighbors(1,i)*H));
+    sectionEq_p1 = sectionEq_p1 + (h1*(vecNeighbors(1,i)*H));
 end
 
 sectionEq_p2 = [];
 for i = 1:n
-    sectionEq_p2 = [sectionEq_p2 1/Ca*(h2*(vecNeighbors(1,i)*H)) 0];
+    sectionEq_p2 = [sectionEq_p2 1/Ca*(h1*(vecNeighbors(1,i)*H)) 0];
 end
 
 %Sprawdź czy parametry nie są zerowe, wynoszą Inf albo NaN
 %sprawdzenie czy tworzona sekcja posiada jedynie ściany wewnętrzne
 if L==0 || L==Inf || isnan(L)
-    sectionEq = [-1/Ca*(sectionEq_p1+(h2*roofArea)+(h2*area)) 0 0 sectionEq_p2 1/Ca*(h2*roofArea) 0 1/Ca*(h2*area) 0];
+    sectionEq = [-1/Ca*(sectionEq_p1+(h1*roofArea)+(h1*area)) 0 0 sectionEq_p2 1/Ca*(h1*roofArea) 0 1/Ca*(h1*area) 0];
 else
-    sectionEq = [-1/Ca*((h2*H*L)+sectionEq_p1+(h2*roofArea)+(h2*area)) 1/Ca*(h2*H*L) 0 sectionEq_p2 1/Ca*(h2*roofArea) 0 1/Ca*(h2*area) 0];
+    sectionEq = [-1/Ca*((h1*H*L)+sectionEq_p1+(h1*roofArea)+(h1*area)) 1/Ca*(h1*H*L) 0 sectionEq_p2 1/Ca*(h1*roofArea) 0 1/Ca*(h1*area) 0];
 end
 
 %-----------
@@ -141,112 +211,77 @@ end
 if L==0 || L==Inf || isnan(L)
     exteriorWallEq = zeros(2,size(sectionEq,2));
 else
-    exteriorWallEq = [1/Czi*(h2*H*L) -(h2*H*L/Czi + H*L/Rz/Czi) H*L/Rz/Czi zeros(1,2*n) 0 0 0 0;
-                            0 H*L/Rz/Czo -(h1*H*L/Czo + H*L/Rz/Czo) zeros(1,2*n) 0 0 0 0];
+    exteriorWallEq = [1/Czi*(h1*H*L) -(h1*H*L/Czi + H*L/Rz/Czi) H*L/Rz/Czi zeros(1,2*n) 0 0 0 0;
+                            0 H*L/Rz/Czo -(h2*H*L/Czo + H*L/Rz/Czo) zeros(1,2*n) 0 0 0 0];
 end
 
 %-----------
 interiorWallEq = [];
 for i = 1:n
     interiorWallEq = [interiorWallEq;
-                        h2*vecNeighbors(1,i)*H/Cwi(i) 0 0 zeros(1,2*(i-1)) -(h2*vecNeighbors(1,i)*H/Cwi(i) + vecNeighbors(1,i)*H/Rw(i)/Cwi(i)) vecNeighbors(1,i)*H/Rw(i)/Cwi(i) zeros(1,2*n-2*i) 0 0 0 0;
-                        0 0 0 zeros(1,2*(i-1)) vecNeighbors(1,i)*H/(Rw(i)*Cwo(i)) -(h2*(vecNeighbors(1,i)*H)/Cwo(i) + vecNeighbors(1,i)*H/(Rw(i)*Cwo(i))) zeros(1,2*n-2*i) 0 0 0 0];
+                        h1*vecNeighbors(1,i)*H/Cwi(i) 0 0 zeros(1,2*(i-1)) -(h1*vecNeighbors(1,i)*H/Cwi(i) + vecNeighbors(1,i)*H/Rw(i)/Cwi(i)) vecNeighbors(1,i)*H/Rw(i)/Cwi(i) zeros(1,2*n-2*i) 0 0 0 0;
+                        0 0 0 zeros(1,2*(i-1)) vecNeighbors(1,i)*H/(Rw(i)*Cwo(i)) -(h1*(vecNeighbors(1,i)*H)/Cwo(i) + vecNeighbors(1,i)*H/(Rw(i)*Cwo(i))) zeros(1,2*n-2*i) 0 0 0 0];
 end
 
 %-----------
-vecParam = table2array(insulationsTable(:,4));
-l_mid = sum(vecParam(1,:))/2;
-val = 0; idx = 0;
-for i = 1:size(vecParam(1,:),2)
-    if val <= l_mid
-        val = val + vecParam(1,i);
-        idx = idx + 1;
-    end
-end
+Rwp = Rp + 1/U_conv; %opór cieplny pomiędzy podłogą, a wodą w obiegu grzewczym
+area_pipe = pi*1.1*area/eq(7)*eq(5);
+if floorType == 0
+    % Jeżeli sekcja znajduje się na pierwszym piętrze budynku wielopiętrowego
+    roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
+    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(roofArea/Rs/Cso) 0 0];
 
-Rso = 0;
-for i = idx:size(vecParam,2)
-    Rso = Rso + vecParam(1,i)/vecParam(4,i);
-end
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area + area/(Rp+Rb)) area/Rwp/Cp];
+elseif floorType == 1
+    % Jeżeli sekcja znajduje się na drugim -> przedostatnim piętrze budynku wielopiętrowego
+    roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
+    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(roofArea/Rs/Cso) 0 0];
 
-if flag == 0
-    %jeżeli sekcja znajduje się na pierwszym piętrze budynku wielopiętrowego
-    roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
-    0 0 0 zeros(1,2*n) roofArea/Rs*1/Cso -(roofArea/(Rp+Rso)/Cso + roofArea/Rs/Cso) 0 0];
-
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rb)) U_conv*area/Cp];
-elseif flag == 1
-    % jeżeli sekcja znajduje się na drugim -> przedostatnim piętrze budynku wielopiętrowego
-    roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
-    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(roofArea/(Rp+Rso)/Cso + roofArea/Rs/Cso) 0 0];
-
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rso)) U_conv*area/Cp];
-elseif flag == 2
-    % jeżeli sekcja znajduje się na ostatnim piętrze budynku wielopiętrowego
-    roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
-    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h1*roofArea/Cso + roofArea/Rs/Cso) 0 0];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area) area/Rwp/Cp];
+elseif floorType == 2
+    % Jeżeli sekcja znajduje się na ostatnim piętrze budynku wielopiętrowego
+    roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
+    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h2*roofArea/Cso + roofArea/Rs/Cso) 0 0];
     
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rso)) U_conv*area/Cp];
-elseif flag == -1
-    % jeżeli sekcja znajduje się w budynku jednopiętrowym
-    roofEq = [h2*roofArea/Csi 0 0 zeros(1,2*n) -(h2*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
-    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h1*roofArea/Cso + roofArea/Rs/Cso) 0 0];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area) area/Rwp/Cp];
+elseif floorType == -1
+    % Jeżeli sekcja znajduje się w budynku jednopiętrowym
+    roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
+    0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h2*roofArea/Cso + roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(U_conv*area + h2*area + area/(Rp+Rb)) U_conv*area/Cp];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area + area/(Rp+Rb)) area/Rwp/Cp];
 end
 
 %-----------
-d = eq(5); % rozstaw rur [m]
+d = eq(7); % rozstaw rur [m]
 L_total = 1.1*area/d;
-pipeDiameter = eq(3);
-pipeThickness = eq(4);
+pipeDiameter = eq(5);
+pipeThickness = eq(6);
 Vwater = pi*((pipeDiameter - 2*pipeThickness)/2)^2 * L_total;
 Cwater = dw*cw*Vwater;
 pipeRadius = (pipeDiameter - 2*pipeThickness);
-waterVelocity = eq(6)/60000 / (pi*(pipeRadius)^2); % [l/min] -> [m/s]
+waterVelocity = eq(8)/60000 / (pi*(pipeRadius)^2); % [l/min] -> [m/s]
 
 m_dot = dw*pi*(pipeRadius)^2*waterVelocity;
 
 %Cwater * dT_water(t)/dt = m_dot*cw*(T_supply(t)-T_return(t)) + area/Rp*(T_floor(t)-T_return(t))
-returnWaterEq = [0 0 0 zeros(1,2*n) 0 0 area/Rp/Cwater -(m_dot*cw/Cwater + area/Rp/Cwater)];
+returnWaterEq = [0 0 0 zeros(1,2*n) 0 0 area/Rwp/Cwater -(m_dot*cw/Cwater + area/Rwp/Cwater)];
 
-%-----------
-if typ == "ogrzewana"
-    A = [sectionEq;exteriorWallEq;interiorWallEq;roofEq;floorEq;returnWaterEq];
-elseif typ == "nieogrzewana"
-    sectionEq = sectionEq(:,1:end-1);
-    exteriorWallEq = exteriorWallEq(:,1:end-1);
-    interiorWallEq = interiorWallEq(:,1:end-1);
-    roofEq = roofEq(:,1:end-1);
-    if flag == 0 || flag == -1
-        floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(h2*area + area/(Rp+Rb))];
-    elseif flag == 1 || flag == 2
-        floorEq = [h2*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(h2*area + area/(Rp+Rso))];
-    else
-        error("[ERROR] Nieznana flaga!")
-    end
-    A = [sectionEq;exteriorWallEq;interiorWallEq;roofEq;floorEq;[]];
-else
-    error("[ERROR] Nieznany typ strefy!")
-end
+A = [sectionEq;exteriorWallEq;interiorWallEq;roofEq;floorEq;returnWaterEq];
 
 %----------------------------------
 %Macierz B
-if typ == "ogrzewana"
+if is_controlled == 1
     B = [0;0;0;zeros(2*n,1);0;0;0;m_dot*cw/Cwater];
-elseif typ == "nieogrzewana"
+elseif is_controlled == 0
     B = zeros(size(A,1),1);
-else
-    error("[ERROR] Nieznany typ strefy!")
 end
 %----------------------------------
 %Macierz C
-if typ == "ogrzewana"
+if is_controlled == 1
     C = [1 0 0 zeros(1,2*n) 0 0 0 0];
-elseif typ == "nieogrzewana"
+elseif is_controlled == 0
     C = zeros(1, size(A,1));
-else
-    error("[ERROR] Nieznany typ strefy!")
 end
 
 %----------------------------------
@@ -261,98 +296,91 @@ D = 0;
 % 3) temperatura podłoża [K],
 % 4) straty/zyski energii (moc cieplna) [W]
 
-coeffFloor = 1/Cp*Awin*SC*alpha_floor;
-coeffWall = 1/Czo*(L*H - Awin)*alpha_wall;
+coeffFloorN = 1/Cp*AwinN*SHGC*alpha_floor;
+coeffFloorS = 1/Cp*AwinS*SHGC*alpha_floor;
+coeffFloorE = 1/Cp*AwinE*SHGC*alpha_floor;
+coeffFloorW = 1/Cp*AwinW*SHGC*alpha_floor;
 
 %Sprawdź czy parametry nie są zerowe, wynoszą Inf albo NaN
 %sprawdzenie czy tworzona sekcja posiada jedynie ściany wewnętrzne
 if L==0 || L==Inf || isnan(L)
     % sekcja nie posiada ścian zewnętrznych (posiada tylko wewnętrzne)
-    if flag == 0
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        0 0 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        0 0 0 0;
-        0 0 area/(Rp+Rb)/Cp 0;
-        0 0 0 0];
-    elseif flag == 1
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        0 0 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        0 0 0 0;
-        0 0 0 0;
-        0 0 0 0];
-    elseif flag == 2
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        0 0 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        h1*roofArea/Cso 0 0 0;
-        0 0 0 0;
-        0 0 0 0];
-    elseif flag == -1
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        0 0 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        h1*roofArea/Cso 0 0 0;
-        0 0 area/(Rp+Rb)/Cp 0;
-        0 0 0 0];
+    if floorType == 0
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 area/(Rp+Rb)/Cp 0;
+        0 0 0 0 0 0 0];
+    elseif floorType == 1
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0];
+    elseif floorType == 2
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        h2*roofArea/Cso 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0];
+    elseif floorType == -1
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        h2*roofArea/Cso 0 0 0 0 0 0;
+        0 0 0 0 0 area/(Rp+Rb)/Cp 0;
+        0 0 0 0 0 0 0];
     end
 else
     % sekcja posiada ściany zewnętrzne
-    if flag == 0
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        h1*H*L*1/Czo coeffWall 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        0 0 0 0;
-        0 coeffFloor area/(Rp+Rb)/Cp 0;
-        0 0 0 0];
-    elseif flag == 1
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        h1*H*L*1/Czo coeffWall 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        0 0 0 0;
-        0 coeffFloor 0 0;
-        0 0 0 0];
-    elseif flag == 2
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        h1*H*L*1/Czo coeffWall 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        h1*roofArea/Cso 0 0 0;
-        0 coeffFloor 0 0;
-        0 0 0 0];
-    elseif flag == -1
-        Z = [0 0 0 1/Ca;
-        0 0 0 0;
-        h1*H*L*1/Czo coeffWall 0 0;
-        zeros(2*n,4);
-        0 0 0 0;
-        h1*roofArea/Cso 0 0 0;
-        0 coeffFloor area/(Rp+Rb)/Cp 0;
-        0 0 0 0];
+    if floorType == 0
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        h2*H*L*1/Czo 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        0 coeffFloorN coeffFloorS coeffFloorE coeffFloorW area/(Rp+Rb)/Cp 0;
+        0 0 0 0 0 0 0];
+    elseif floorType == 1
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        h2*H*L*1/Czo 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        0 0 0 0 0 0 0;
+        0 coeffFloorN coeffFloorS coeffFloorE coeffFloorW 0 0;
+        0 0 0 0 0 0 0];
+    elseif floorType == 2
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        h2*H*L*1/Czo 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        h2*roofArea/Cso 0 0 0 0 0 0;
+        0 coeffFloorN coeffFloorS coeffFloorE coeffFloorW 0 0;
+        0 0 0 0 0 0 0];
+    elseif floorType == -1
+        Z = [0 0 0 0 0 0 1/Ca;
+        0 0 0 0 0 0 0;
+        h2*H*L*1/Czo 0 0 0 0 0 0;
+        zeros(2*n,7);
+        0 0 0 0 0 0 0;
+        h2*roofArea/Cso 0 0 0 0 0 0;
+        0 coeffFloorN coeffFloorS coeffFloorE coeffFloorW area/(Rp+Rb)/Cp 0;
+        0 0 0 0 0 0 0];
     end
-end
-
-% Jeżeli sekcja jest nieogrzewana - usuń ostatni wiersz (woda w strefie)
-if typ == "ogrzewana"
-    Z = Z(:,:);
-elseif typ == "nieogrzewana"
-    Z = Z(1:end-1,:);
-else
-    error("[ERROR] Nieznany typ strefy!")
 end
 
 end

@@ -1,4 +1,4 @@
-function [CC,d,dd] = ompc_constraints(Px,Py,Pu,Hxc,Hyc,Huc,Qrx,Qry,Qru,npred,umax,umin,xmax,xmin,ymax,ymin)
+function [CC,d,dd] = ompc_constraints(Px,Py,Pu,Hxc,Hyc,Huc,Qrx,Qry,Qru,npred,umax,umin,xmax,xmin,ymax,ymin,zoneWaterIndex,nx,x,ref,dist)
 
 %Notacja:
 %CC*ck <= d + [dd][xk;ref-dist] 
@@ -26,6 +26,27 @@ for i = 1:npred-1
     dymax = [dymax;ymax];
     dymin = [dymin;ymin];
 end
+
+%-------------------------------------------------------
+% Wprowadź jako ograniczenie dumin predykcje temperatur wody w strefie
+
+x_predicted = Px*x + Qrx*(ref-dist); %oblicz predykcje przy c = 0
+num = size(zoneWaterIndex,1);
+umin_base = zeros(num+1,1);
+VECTOR = zeros(npred*(num+1),1);
+for i = 1:npred
+    for j = 1:num
+        umin_base(j) = x_predicted(zoneWaterIndex(j)+(i-1)*nx); 
+    end
+    umin_base(end) = umin(end);
+
+    for k = 1:size(umin_base,1)
+        VECTOR(k+size(umin_base,1)*(i-1)) = umin_base(k);
+    end
+end
+dumin = VECTOR;
+
+%-------------------------------------------------------
 
 %dd
 ddumax = -[Pu Qru];

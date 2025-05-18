@@ -1,4 +1,4 @@
-function [A,B,C,Z] = mergeFloorModels(A0,B0,C0,Z0,matrixNeighbors,sectionsNum,statesVector,insulationsTable,unheatedZones)
+function [A,B,C,Z] = mergeFloorModels(A0,B0,C0,Z0,matrixNeighbors,sectionsNum,statesVector,insulations,coefficients,vecArea)
 
 % Zmodyfikuj indeksy początkowe sekcji aby wskazywały na ostatni stan w sekcji
 statesVector_modified = statesVector;
@@ -28,41 +28,32 @@ end
 for k = 1:size(sectionsNum,2)-1
     matrix = matrixEnums(sectionsNum(1,k):sectionsNum(1,k+1)-1, sectionsNum(2,k):sectionsNum(2,k+1)-1);
     offset_lower = sectionsNum(2,2) - sectionsNum(2,1);
-    
     indexUpper_end = statesVector_modified(offset_lower+sectionsNum(1,k):offset_lower+sectionsNum(1,k+1)-1);
     indexLower_end = statesVector_modified(sectionsNum(2,k):sectionsNum(2,k+1)-1);
-
     for col = 1:size(matrix,2)
         for row = 1:size(matrix,1)
             x = matrix(row,col);
             if x ~= 0
                 
                 %----------------------------------------------------------
-                % Sprawdź, czy któraś ze stref nie jest sekcją nieogrzewaną, jeżeli jest to użyj innych indeksów
-                if unheatedZones(find(statesVector_modified == indexUpper_end(row), 1)) == 0
-                    idx_overwritting = indexUpper_end(row) - 1; %wskazuje na podłogę sekcji górnej
-                elseif unheatedZones(find(statesVector_modified == indexUpper_end(row), 1)) == 1
-                    idx_overwritting = indexUpper_end(row); %wskazuje na podłogę sekcji górnej
-                end
-                if unheatedZones(find(statesVector_modified == indexLower_end(col), 1)) == 0
-                    idx_overwrite = indexLower_end(col) - 2; %wskazuje na część zewnętrzną stropu sekcji dolnej
-                elseif unheatedZones(find(statesVector_modified == indexLower_end(col), 1)) == 1
-                    idx_overwrite = indexLower_end(col) - 1; %wskazuje na część zewnętrzną stropu sekcji dolnej
-                end
+                idx_overwritting = indexUpper_end(row) - 1; %wskazuje na podłogę sekcji górnej
+                idx_overwrite = indexLower_end(col) - 2; %wskazuje na część zewnętrzną stropu sekcji dolnej
                 
                 %----------------------------------------------------------
-                % Dla podłogi
-                vecParam = table2array(insulationsTable(:,3));
-                Cp = sum(vecParam(1,:) * vecParam(2,:)' * vecParam(3,:));
-
+                % Dla podłogi (piętro wyżej)
+                scale = coefficients(1);
+                vecParam = table2array(insulations(:,3));
+                areaFloor = vecArea(statesVector_modified==indexUpper_end(row))*scale^2;
+                Cp = sum(vecParam(1,:) * vecParam(2,:)' * vecParam(3,:))*areaFloor;
                 Rp = 0;
                 for i = 1:size(vecParam,2)
                     Rp = Rp + vecParam(1,i)/vecParam(4,i);
                 end
                 
                 %----------------------------------------------------------
-                % Dla stropu
-                vecParam = table2array(insulationsTable(:,4));
+                % Dla stropu (piętro niżej)
+                vecParam = table2array(insulations(:,4));
+                areaCeiling  = vecArea(statesVector_modified==indexLower_end(col))*scale^2;
                 l_mid = sum(vecParam(1,:))/2;
                 val = 0; idx = 0;
                 for i = 1:size(vecParam(1,:),2)
@@ -71,8 +62,7 @@ for k = 1:size(sectionsNum,2)-1
                         idx = idx + 1;
                     end
                 end
-                Cso = (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx));
-
+                Cso = (sum(vecParam(1,idx:end) * vecParam(2,idx:end)' * vecParam(3,idx:end)) + abs(l_mid - sum(vecParam(1,idx:end)))*vecParam(2,idx)*vecParam(3,idx))*areaCeiling;
                 Rs = 0;
                 for i = 1:size(vecParam,2)
                     Rs = Rs + vecParam(1,i)/vecParam(4,i);
@@ -80,10 +70,14 @@ for k = 1:size(sectionsNum,2)-1
                 
                 %----------------------------------------------------------
                 % łączenie stropu zewnętrznego (sekcja dolna) z podłogą (sekcja górna)
-                A0(idx_overwrite,idx_overwritting) = 1/Cso * 1/(Rp+Rs);
+                A0(idx_overwrite,idx_overwritting) = 1/Cso*areaFloor/(Rp+Rs);
 
                 % łączenie podłogi (sekcja górna) z stropem zewnętrznym (sekcja dolna)
-                A0(idx_overwritting,idx_overwrite) = 1/Cp * 1/(Rp+Rs);
+                A0(idx_overwritting,idx_overwrite) = 1/Cp*areaCeiling/(Rp+Rs);
+
+                %Zaktualizuj równania podłogi oraz stropu, uwzględniając nowe połączenia (strop <-> podłoga)
+                A0(idx_overwrite,idx_overwrite) = A0(idx_overwrite,idx_overwrite) - 1/Cso*areaFloor/(Rp+Rs);
+                A0(idx_overwritting,idx_overwritting) = A0(idx_overwritting,idx_overwritting) - 1/Cp*areaCeiling/(Rp+Rs);
             end
         end
     end

@@ -29,7 +29,6 @@ Psi = [A - B*K,           [B, zeros(nx, (nc-1)*nu)],    [(eye(nx) - (A - B*K))*K
 Kz = [-K, eye(nu), zeros(nu,(nc-1)*nu), [K*Kxr+Kur,zeros(nu,ny*(na-1))]];
 Kxss = [eye(nx), zeros(nx,nuc), -Kxr, zeros(nx,ny*(na-1))];
 Kzss = Kz - [zeros(nu,nx),zeros(nu, nuc), [Kur,zeros(nu,ny*(na-1))]];
-
 %----------------------------------------------------------------------
 W = Psi' * Kxss' * Q * Kxss * Psi + Kzss' * R * Kzss;
 Spsi = dlyap(Psi', W);

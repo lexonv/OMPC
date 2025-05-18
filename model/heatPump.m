@@ -1,22 +1,22 @@
-function [A, B, C, D, Z] = heatPump(coefficients, v)
+function [A, B, C, D, Z] = heatPump(coefficients, Q_flow)
 
-% Model pompy ciepła z buforem
-% C_buf*dT_buf/dt = COP * P_el + U*area*(T_amb - T_buf) + m_dot*cw*(T_ret - T_buf) 
+%parametry
+cw = coefficients(9);
+dw = coefficients(10);
+V_buf = coefficients(16);
+COP = coefficients(17);
+area_buf = coefficients(18);
+U = coefficients(19);
 
-V_buf = coefficients(19);
-COP = coefficients(20);
-area_buf = coefficients(21);
-U = coefficients(22);
-
-cw = coefficients(12);
-dw = coefficients(13);
+% Punkt pracy
+m_dot = dw.*Q_flow./60000; %[kg/s]
 C_bufor = cw * dw * V_buf;
-m_dot = v/60000*dw;
 
-A = -(U*area_buf + m_dot*cw)/C_bufor; %[T_buf]
+A = -area_buf*U/C_bufor;
 B = COP/C_bufor; %[P_el]
-C = 1; % [T_buf]
+C = 1; %[Tbufor]
 D = 0;
-Z = [U*area_buf m_dot*cw]/C_bufor; % [T_amb; T_ret]
+Z = [area_buf*U -m_dot.*cw m_dot.*cw]/C_bufor; % [Tsp; Treturn]
 
 end
+
