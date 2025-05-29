@@ -1,8 +1,9 @@
+function [Px,Py,Pu,Hxc,Hyc,Hcu,Qrx,Qry,Qru] = ompc_predictions(A,B,C,K,Kxr,Kur,nc,npred)
+
+%Struktura predykcji:
 % x_fut = Px*x + Hcx*c + Qrx*(r-d)
 % y_fut = Py*x + Hcy*c + Qry*(r-d)
 % u_fut = Pu*x + Hcu*c + Qru*(r-d)
-
-function [Px,Py,Pu,Hxc,Hyc,Hcu,Qrx,Qry,Qru] = ompc_predictions(A,B,C,K,Kxr,Kur,nc,npred)
 
 %--------------------------------------------------------------------------
 

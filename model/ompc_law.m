@@ -1,4 +1,4 @@
-function [u, c] = ompc_law(A,B,C,K,Sxc,Sc,Scr,umax,umin,xmax,xmin,ymax,ymin,nc,npred,ref,dist,x)
+function [u, c] = ompc_law(A,B,C,K,Sxc,Sc,Scr,Qflow,zoneWaterIndex,umax,umin,xmax,xmin,ymax,ymin,w,nc,npred,price,ref,dist,x)
 
 nx = size(A,1);
 ny = size(C,1);
@@ -18,12 +18,20 @@ uss = Kur * (ref - dist);  % nu x 1
 xhat = x - xss;
 
 [Px, Py, Pu, Hxc, Hyc, Huc, Qrx, Qry, Qru] = ompc_predictions(A, B, C, K, Kxr, Kur, nc, npred);
-[CC, d, dd] = ompc_constraints(Px, Py, Pu, Hxc, Hyc, Huc, Qrx, Qry, Qru, npred,umax, umin, xmax, xmin, ymax, ymin);
+[CC, d, dd] = ompc_constraints(Px, Py, Pu, Hxc, Hyc, Huc, Qrx, Qry, Qru, npred,umax, umin, xmax, xmin, ymax, ymin, Qflow, zoneWaterIndex, nx, x, ref, dist);
 
 %----------------------------------------------------------------------
 H = (Sc+Sc')/2;
-f = xhat' * Sxc + (REF-DIST)' * Scr';
+f_base = xhat' * Sxc + (REF-DIST)' * Scr';
 
+%Kara za wysokie ceny energii
+f_price = zeros(1,nu*nc);
+for i = 1:nc
+    f_price(nu*i) = price(i);
+end
+
+%Wprowadź karę
+f = f_base + w * f_price;
 Aineq = CC;
 bineq = d + dd * [x; ref - dist];
 Aeq = zeros(0,length(f'));
@@ -33,8 +41,8 @@ beq = zeros(0,1);
 ctrl0 = zeros(nc*nu,1);
 options = mpcInteriorPointOptions('double'); 
 options.Display = 'off'; 
-options.MaxIterations = 150; 
-options.ConstraintTolerance = 5.0e-1; 
+options.MaxIterations = 500; 
+options.ConstraintTolerance = 5.0e-2; 
 options.StepTolerance = 1.0e-8;
 options.OptimalityTolerance = 1.0e-2;
 options.ComplementarityTolerance = 1.0e-4;
@@ -42,11 +50,11 @@ options.ComplementarityTolerance = 1.0e-4;
 [ctrl, ~, exitflag] = mpcInteriorPointSolver(H, f', Aineq, bineq, Aeq, beq, ctrl0, options);
 
 if exitflag == 0
-    disp("The maximum number of iterations was reached. The solution might be suboptimal or infeasible.");
+    error("The maximum number of iterations was reached. The solution might be suboptimal or infeasible.");
 elseif exitflag == -1
-    disp("The problem appears to be infeasible.");
+    error("The problem appears to be infeasible.");
 elseif exitflag == -2
-    disp("An unrecoverable numerical error occurred.");
+    error("An unrecoverable numerical error occurred.");
 end
 
 % Optymalne odchylenie sterowania

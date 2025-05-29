@@ -15,8 +15,6 @@ if sum(vecUnheatedFloors) > 0
     Q_flow = QflowTEMP;
 end
 
-Q_total = sum(Q_flow); %przepływ wody powracającej do bufora [l/min]
-
 [Ap, Bp, Cp, ~, Zp] = heatPump(coefficients, Q_flow);
 
 A = [Am zeros(size(Am,1),size(Ap,1));
@@ -58,10 +56,10 @@ for i = 1:size(N,2)
     A(end,strefa) = Zp(1);
 
     %Temperatura wody powracającej do bufora - średnia ważona z przepływów
-    A(end,N(i)) = Zp(i + 1 + size(N,2)) * Q_flow(i)/Q_total;
+    A(end,N(i)) = Zp(i + 1 + size(N,2));
 
     %Temperatura wody na wyjściu z zaworu wpływająca na temp. bufora
-    B(end,i) = Zp(i+1) * Q_flow(i)/Q_total;
+    B(end,i) = Zp(i+1);
 end
 
 end

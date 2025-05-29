@@ -8,7 +8,6 @@ COP = coefficients(17);
 area_buf = coefficients(18);
 U = coefficients(19);
 
-% Punkt pracy
 m_dot = dw.*Q_flow./60000; %[kg/s]
 C_bufor = cw * dw * V_buf;
 
@@ -17,6 +16,5 @@ B = COP/C_bufor; %[P_el]
 C = 1; %[Tbufor]
 D = 0;
 Z = [area_buf*U -m_dot.*cw m_dot.*cw]/C_bufor; % [Tsp; Treturn]
-
 end
 

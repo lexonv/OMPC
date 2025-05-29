@@ -7,40 +7,27 @@ clear;clc;
 %    W-|-E
 %      S
 %
-matrix1 = [1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 3 3 3 3 3 3 3;
-           2 2 2 3 3 3 3 3 3 3;
-           2 2 2 3 3 3 3 3 3 3;
-           2 2 2 2 2 -1 -1 -1 -1 -1;
-           2 2 2 2 2 -1 -1 -1 -1 -1;
-           2 2 2 2 2 -1 -1 -1 -1 -1;
-           2 2 2 2 2 -1 -1 -1 -1 -1];
 
-matrix2 = [1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           2 2 2 2 2 2 2 2 2 2;
-           2 2 2 2 2 2 2 2 2 2;
-           2 2 2 2 2 -1 -1 -1 -1 -1;
-           2 2 2 2 2 -1 -1 -1 -1 -1;
-           2 2 2 2 2 -1 -1 -1 -1 -1;
-           2 2 2 2 2 -1 -1 -1 -1 -1];
+zoneMatrix1 = [3 3 3 2 2 1 1 1;
+               3 3 3 2 2 1 1 1;
+               2 2 2 2 2 1 1 1;
+               2 2 2 2 0 0 -1 -1;
+               2 2 2 2 0 0 -1 -1;
+               2 2 2 2 0 0 -1 -1;
+               -1 -1 -1 -1 -1 -1 -1 -1;
+               -1 -1 -1 -1 -1 -1 -1 -1];
 
-matrix3 = [1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 1 1 1 1 1;
-           1 1 1 1 1 -1 -1 -1 -1 -1;
-           1 1 1 1 1 -1 -1 -1 -1 -1;
-           1 1 1 1 1 -1 -1 -1 -1 -1;
-           1 1 1 1 1 -1 -1 -1 -1 -1];
+zoneMatrix2 = [4 4 4 4 4 4 4 4;
+               4 4 4 4 4 4 4 4;
+               4 4 4 4 4 4 4 4;
+               5 5 5 5 5 5 -1 -1;
+               5 5 5 5 5 5 -1 -1;
+               5 5 5 5 5 5 -1 -1;
+               -1 -1 -1 -1 -1 -1 -1 -1;
+               -1 -1 -1 -1 -1 -1 -1 -1];
 
-matrixTable = table(matrix1,matrix2);
+
+zoneMatrixTable = table(zoneMatrix1,zoneMatrix2);
 
 %Wysokość pięter
 H = 2.5;
@@ -68,44 +55,27 @@ insulationGround = [materialThickness;materialDensity;materialSpecificHeat;mater
 insulationTable = table(insulationExternal, insulationInternal, insulationFloor, insulationCeiling, insulationRoof, insulationGround);
 
 %Konfiguracja pomieszczeń (okna, liczba okien w pomieszczeniu, średnica rur, grubość rur, rozstaw rur, przepływ [l/min])
-floor1Equipment = [1 0 1; % ile okien północnych
-                   0 1 0; % ile okien południowych
-                   0 0 1; % ile okien wschodnich
-                   1 1 0; % ile okien zachodnich
-                   0.016 0.016 0.016; % średnica rur (zewnętrzna)
-                   0.002 0.002 0.002; % grubość ścianki
-                   0.15 0.15 0.15; % rozstaw rur
-                   4 3 3]; % przepływ wody [l/min]
-floor2Equipment = [0 0; % ile okien północnych
-                   0 1 % ile okien południowych
+floor1Equipment = [0 1 0 1; % ile okien północnych
+                   0 0 2 0; % ile okien południowych
+                   0 1 0 1; % ile okien wschodnich
+                   0 0 2 0; % ile okien zachodnich
+                   0.016 0.016 0.016 0.016; % średnica rur (zewnętrzna)
+                   0.002 0.002 0.002 0.002; % grubość ścianki
+                   0.15 0.15 0.15 0.15; % rozstaw rur
+                   0 3 4 3]; % przepływ wody [l/min]
+floor2Equipment = [2 0; % ile okien północnych
+                   0 0 % ile okien południowych
                    1 0 % ile okien wschodnich
-                   1 1; % ile okien zachodnich
+                   0 2; % ile okien zachodnich
                    0.02 0.02; % średnica rur (zewnętrzna)
                    0.002 0.002; % grubość ścianki
                    0.15 0.15; % rozstaw rur
-                   5 5]; % przepływ wody [l/min]
-floor3Equipment = [0 0 0; % ile okien północnych
-                   0 0 0; % ile okien południowych
-                   0 0 0; % ile okien wschodnich
-                   0 0 0; % ile okien zachodnich
-                   0.016 0.016 0.02; % średnica rur (zewnętrzna)
-                   0.002 0.002 0.002; % grubość ścianki
-                   0.2 0.2 0.2; % rozstaw rur
-                   3 3 3]; % przepływ wody [l/min]];
-
-floor4Equipment = [1;
-                   1;
-                   2;
-                   2;
-                   0.016;
-                   0.002;
-                   0.2;
-                   10];
+                   8 8]; % przepływ wody [l/min]
 
 roomEquipment = table(floor1Equipment,floor2Equipment);
 
 %Stałe parametry
-scale = 1.2; %skala siatki macierzy [1]
+scale = 2.5; %skala siatki macierzy [1]
 h1 = 3; %Convective Heat Transfer Coefficient [W/m2K] dla powietrza wewnątrz budynku [2]
 h2 = 20; %Convective Heat Transfer Coefficient [W/m2K] dla powietrza zewnętrznego (wiatr) [3]
 roofAngle = 0; %kąt nachylenia dachu [°] [4]
@@ -120,15 +90,19 @@ u = 0.000547; % lepkość wody [12]
 cp = 1005; % ciepło właściwe powietrza [13]
 dp = 1.1204; % gęstość powietrza [14]
 k_tube = 0.35; %współczynnik przewodzenia rur (PEX) [15]
-V_buf = 0.1; %objętość zbiornika buforowego [m^3] [16]
-COP = 4; %współczynnik sprawności pompy ciepła [17]
+V_buf = 0.3; %objętość zbiornika buforowego [m^3] [16]
+COP = 3.5; %współczynnik sprawności pompy ciepła [17]
 area_buf = 2*pi*((V_buf/(4*pi))^(1/3))^2 + 2*pi*((V_buf/(4*pi))^(1/3))*4*(V_buf/(4*pi))^(1/3); %powierzchnia styku bufor - temperatura na zewnątrz [18]
 U_buf = 0.531; %współczynnik przenikania cieplnego zbiornika [19]
 coefficients = [scale h1 h2 roofAngle Awin Uwin SHGC alpha_floor cw dw kw u cp dp k_tube V_buf COP area_buf U_buf];
+Qflow = table2array(roomEquipment(end,:));
 
-[Am,Bm,Cm,Dm,Zm,N,exWalls,roofSt,vecUnheatedFloors] = generateBuilding(matrixTable,heightTable,insulationTable,coefficients,roomEquipment);
+[Am,Bm,Cm,Dm,Zm,N,exWalls,roofSt,vecUnheatedFloors] = generateBuilding(zoneMatrixTable,heightTable,insulationTable,coefficients,roomEquipment);
 nx = size(Am,1); nu = size(Bm,2); ny = size(Cm,1); nz = size(Zm,2);
 [A,B,C,D,Z] = mergePumpBuilding(Am,Bm,Cm,Dm,Zm,N,vecUnheatedFloors,roomEquipment,coefficients);
+
+%Jeżeli instalacja ma być sterowana jednostrefowo
+% B = [sum(B(:,1:size(B,2)-1),2) B(:,end)]; nu = size(B,2)-1;
 
 %Dyskretyzacja modelu
 Ts = 1200;
@@ -142,12 +116,126 @@ Bd = Bd(:, 1:size(B, 2));
 %%
 %Parametry strojenia regulatora
 nc = 48; npred = 72; na = 72;
-time = 3600*24; %czas symulacji [s]
-w_PumpCost = 0.01; %współczynnik kosztów cen energii
-Q = 2000*(C'*C); Q(end,end) = 125;
-R = 0.5*eye(size(B,2)); R(end,end) = 0.01;
+time = 3600*24*7; %czas symulacji [s]
+w_PumpCost = 1.5; %współczynnik kosztów cen energii
+Q = 2000*(C'*C); Q(end,end) = 25;
+R = 0.1*eye(size(B,2)); R(end,end) = 0.005;
 
 %Trajektorie referencyjne i zakłóceń (ENEA Taryfa G12 w 2025 r.)
+
+%Budynek jednopiętrowy
+% trajRef = [21 21 21 21 21 21 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 21 21 21;
+%            20.5 20.5 20.5 20.5 20.5 20.5 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 20.5 20.5 20.5;
+%            21 21 21 21 21 21 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 21 21 21;
+%            50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50];
+
+%Budynek dwupiętrowy
+trajRef = [21 21 21 21 21 21 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 21 21 21;
+           20.5 20.5 20.5 20.5 20.5 20.5 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 20.5 20.5 20.5;
+           21 21 21 21 21 21 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 20.5 21 21 21;
+           20.5 20.5 20.5 20.5 20.5 20.5 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 20.5 20.5 20.5;
+           21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21 21;
+           50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50];
+
+
+%Dla jednego dnia
+% trajDist = [-7.5 -5.5 -4.25 -4.5 -5.0 -4.5 -4.0 -3.0 -1.0 1.0 3.0 4.0 5.0 4.5 4.0 3.0 2.0 1.0 0.0 -1.0 -2.0 -2.5 -3.0 -3.5;
+%            0 0 0 0 0 0 0 2 5 8 10 12 10 8 5 2 1 0 0 0 0 0 0 0;
+%            0 0 0 0 5 20 50 90 140 190 230 260 230 190 140 90 50 20 5 0 0 0 0 0;
+%            0 0 0 5 20 60 120 180 160 100 40 10 2 0 0 0 0 0 0 0 0 0 0 0;
+%            0 0 0 0 0 0 0 2 10 30 70 130 180 200 160 100 50 20 5 0 0 0 0 0;
+%            10.07 10.04 10.00 9.96 9.93 9.96 10.00 10.07 10.15 10.23 10.30 10.35 10.40 10.38 10.35 10.30 10.25 10.23 10.20 10.15 10.10 10.06 10.04 10.02];
+
+%Dla tygodniowej symulacji
+d1Temp = [-8.0 -7.0 -6.5 -6.0 -5.5 -5.0 -4.5 -3.5 -1.5 0.5 2.5 4.0 5.0 4.5 3.5 2.5 1.5 0.5 -0.5 -2.0 -3.5 -5.0 -6.0 -7.0];
+d2Temp = [-5.5 -5.0 -4.5 -4.5 -4.5 -4.0 -3.5 -2.5 -1.0 0.0 1.5 2.5 3.0 2.8 2.0 1.0 0.0 -1.0 -2.0 -3.0 -4.0 -4.5 -5.0 -5.5];
+d3Temp = [-6.5 -6.0 -5.5 -5.5 -5.0 -4.5 -4.0 -3.0 -1.0 0.0 1.0 1.5 2.0 1.5 1.0 0.5 0.0 -0.5 -1.5 -2.5 -3.5 -4.5 -5.5 -6.0];
+d4Temp = [-4.0 -3.5 -3.0 -2.5 -2.0 -1.5 -1.0 0.0 2.0 4.0 6.0 7.0 8.0 7.5 6.0 4.5 3.0 2.0 1.0 0.0 -1.0 -2.0 -3.0 -3.5];
+d5Temp = [-9.0 -8.0 -7.0 -6.5 -6.0 -5.5 -5.0 -4.0 -2.0 0.0 2.0 3.5 4.5 4.0 3.0 2.0 1.0 0.0 -1.0 -2.0 -4.0 -6.0 -7.5 -8.5];
+d6Temp = [-3.0 -2.5 -2.0 -2.0 -2.0 -1.8 -1.5 -0.5 0.5 1.5 2.5 3.0 3.5 3.2 2.5 1.5 0.5 -0.5 -1.5 -2.0 -2.5 -2.8 -2.9 -3.0];
+d7Temp = [-1.0  0.0  1.0  1.5  2.0  2.5  3.0  2.5  1.5  0.5 -0.5 -1.5 -2.0 -2.5 -3.0 -3.5 -4.0 -4.5 -5.0 -5.5 -6.0 -6.5 -7.0 -7.5];
+
+d1Sun = [ 0   0   0   0   0   0   0   5  15  25  30  35  30  25  15   5   2   0   0   0   0   0   0   0;
+       0   0   0   0   5  20  40  80 120 160 190 200 190 160 120  80  40  20   5   0   0   0   0   0;
+       0   0   0   0   0  10  30  70 100 120 110  80  40  20  10   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0  10  30  60  90 130 120 100  60  30  10   0   0   0   0   0   0   0];
+d2Sun = [ 0   0   0   0   0   0   0   4  11  18  21  24  21  18  11   4   1   0   0   0   0   0   0   0;
+       0   0   0   0   4  14  28  56  84 112 133 140 133 112  84  56  28  14   4   0   0   0   0   0;
+       0   0   0   0   0   7  21  49  70  84  77  56  28  14   7   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0   7  21  42  63  91  84  70  42  21   7   0   0   0   0   0   0   0];
+d3Sun = [ 0   0   0   0   0   0   0   2   5   8   9  10   9   8   5   2   1   0   0   0   0   0   0   0;
+       0   0   0   0   2   6  12  24  36  48  57  60  57  48  36  24  12   6   2   0   0   0   0   0;
+       0   0   0   0   0   3   9  21  30  36  33  24  12   6   3   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0   3   9  18  27  39  36  30  18   9   3   0   0   0   0   0   0   0];
+d4Sun = [ 0   0   0   0   0   0   0   6  17  28  33  39  33  28  17   6   2   0   0   0   0   0   0   0;
+       0   0   0   0   6  22  44  88 132 176 209 220 209 176 132  88  44  22   6   0   0   0   0   0;
+       0   0   0   0   0  11  33  77 110 132 121  88  44  22  11   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0  11  33  66  99 143 132 110  66  33  11   0   0   0   0   0   0   0];
+d5Sun = [ 0   0   0   0   0   0   0   3  10  20  25  28  25  20  10   3   1   0   0   0   0   0   0   0;
+       0   0   0   0   3  12  24  48  72 108 135 150 135 108  72  48  24  12   3   0   0   0   0   0;
+       0   0   0   0   0   6  18  42  60  72  66  48  24  12   6   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0  12  36  72 108 156 144 120  72  36  12   0   0   0   0   0   0   0];
+d6Sun = [ 0   0   0   0   0   0   0   6  18  30  35  40  35  30  18   6   2   0   0   0   0   0   0   0;
+       0   0   0   0   6  24  48  96 144 192 228 240 228 192 144  96  48  24   6   0   0   0   0   0;
+       0   0   0   0   0  12  36  84 120 144 132  96  48  24  12   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0  12  36  72 108 156 144 120  72  36  12   0   0   0   0   0   0   0];
+d7Sun = [ 0   0   0   0   0   0   0   4  12  24  28  32  28  24  12   4   1   0   0   0   0   0   0   0;
+       0   0   0   0   4  16  32  64  96 128 152 160 152 128  96  64  32  16   4   0   0   0   0   0;
+       0   0   0   0   0   8  24  56  80  96  88  64  32  16   8   0   0   0   0   0   0   0   0   0;
+       0   0   0   0   0   0   0   8  24  48  72 104  96  80  48  24   8   0   0   0   0   0   0   0];
+
+d1Gnd = [10.07 10.04 10.00  9.96  9.93  9.96 10.00 10.07 10.15 10.23 10.30 10.35 10.40 10.38 10.35 10.30 10.25 10.23 10.20 10.15 10.10 10.06 10.04 10.02];
+d2Gnd = [10.08 10.06 10.02  9.98  9.95  9.98 10.02 10.10 10.18 10.26 10.33 10.37 10.42 10.40 10.37 10.32 10.28 10.26 10.22 10.17 10.12 10.08 10.06 10.04];
+d3Gnd = [ 9.95  9.93  9.90  9.87  9.85  9.88  9.92 10.00 10.08 10.16 10.22 10.27 10.32 10.30 10.27 10.23 10.19 10.17 10.14 10.10 10.06 10.03 10.01  9.99];
+d4Gnd = [10.10 10.07 10.03 10.00  9.97  9.99 10.03 10.11 10.19 10.27 10.34 10.38 10.43 10.41 10.38 10.33 10.29 10.27 10.24 10.19 10.14 10.10 10.07 10.05];
+d5Gnd = [ 9.90  9.88  9.85  9.82  9.80  9.83  9.87  9.95 10.03 10.11 10.17 10.22 10.27 10.25 10.22 10.18 10.14 10.12 10.09 10.05 10.01  9.98  9.96  9.94];
+d6Gnd = [10.12 10.09 10.05 10.02  9.99 10.01 10.05 10.13 10.21 10.29 10.35 10.39 10.44 10.42 10.39 10.34 10.30 10.28 10.25 10.20 10.15 10.11 10.08 10.06];
+d7Gnd = [10.02 10.00  9.97  9.94  9.92  9.95  9.99 10.07 10.15 10.23 10.29 10.34 10.39 10.37 10.34 10.29 10.25 10.23 10.20 10.16 10.12 10.08 10.05 10.03];
+
+dist1 = [-80, -70, -60, -50, -40, -30, 20, 30, 25, 10, -10, -15, 5, 10, 15, 20, 25, 15, 10, 5, 0, 10, 20, -40];
+dist2 = [-10, -5, 0, 0, 5, 10, 50, 70, 80, 60, 55, 50, 65, 70, 68, 66, 62, 60, 55, 40, 20, 10, 0, -5];
+dist3 = [-90, -80, -60, -50, -30, -20, 15, 25, 30, 5, -5, -10, 10, 15, 18, 20, 22, 10, 5, 0, -10, 5, 15, -50];
+dist4 = [-5, 0, 0, 5, 10, 15, 60, 75, 85, 70, 65, 60, 70, 72, 70, 68, 65, 63, 55, 45, 25, 15, 5, 0];
+dist5 = [-85, -75, -65, -55, -45, -30, 18, 28, 26, 12, -8, -12, 8, 12, 14, 18, 20, 14, 8, 4, -2, 6, 10, -45];
+
+% trajDist = [d1Temp d2Temp d3Temp d4Temp d5Temp d6Temp d7Temp;
+%             d1Sun d2Sun d3Sun d4Sun d5Sun d6Sun d7Sun;
+%             d1Gnd d2Gnd d3Gnd d4Gnd d5Gnd d6Gnd d7Gnd;
+%             zeros(1,24*7);
+%             dist1 dist1 dist1 dist1 dist1 dist1 dist1;
+%             dist2 dist2 dist2 dist2 dist2 dist2 dist2;
+%             dist3 dist3 dist3 dist3 dist3 dist3 dist3];
+
+
+trajDist = [d1Temp d2Temp d3Temp d4Temp d5Temp d6Temp d7Temp;
+            d1Sun d2Sun d3Sun d4Sun d5Sun d6Sun d7Sun;
+            d1Gnd d2Gnd d3Gnd d4Gnd d5Gnd d6Gnd d7Gnd;
+            zeros(1,24*7);
+            dist1 dist1 dist1 dist1 dist1 dist1 dist1;
+            dist2 dist2 dist2 dist2 dist2 dist2 dist2;
+            dist3 dist3 dist3 dist3 dist3 dist3 dist3;
+            dist4 dist4 dist4 dist4 dist4 dist4 dist4;
+            dist5 dist5 dist5 dist5 dist5 dist5 dist5];
+
+%Bez zakłóceń niemierzalnych
+% trajDist = [trajDist;zeros(nz-size(trajDist,1),size(trajDist,2))];
+
+%Z zakłóceniami niemierzalnymi dla budynku jednopiętrowego (1 dzień)
+% trajDist = [trajDist;
+%             zeros(1, size(trajDist,2));
+%             dist1;
+%             dist2;
+%             dist3];
+
+%Z zakłóceniami niemierzalnymi dla budynku dwupiętrowego (1 dzień)
+% trajDist = [trajDist;
+%             zeros(1,24);
+%             dist1;
+%             dist2;
+%             dist3;
+%             dist4;
+%             dist5];
+
 trajPrice = [
     0.4056, 0.4056, 0.4056, 0.4056, 0.4056, 0.4056, ... % godz. 00:00–06:00 (nocna)
     0.7506, 0.7506, 0.7506, 0.7506, 0.7506, 0.7506, ... % godz. 06:00–12:00 (dzienna)
@@ -155,40 +243,26 @@ trajPrice = [
     0.7506, 0.7506, 0.7506, 0.7506 ...                  % godz. 18:00–22:00 (dzienna)
     0.4056, 0.4056                                      % godz. 22:00–24:00 (nocna)
 ];
-priceCost = trajPrice;
-% priceCost = [priceCost priceCost priceCost priceCost priceCost priceCost priceCost];
-[priceCost,~,~] = generateTrajectory(priceCost,1,time,Ts,na,1);
-trajPrice = trajPrice - min(trajPrice);
-trajPrice = trajPrice/max(trajPrice); %normalizacja względem maksymalnej ceny <0-1>
 
-trajRef = [21 21;
-           21 21;
-           21 21;
-           21 21;
-           21 21;
-           50 50];
+trajRef = [trajRef trajRef trajRef trajRef trajRef trajRef trajRef];
+trajPrice = [trajPrice trajPrice trajPrice trajPrice trajPrice trajPrice trajPrice];
 
-trajDist = [-7.5 -5.5 -4.25 -4.5 -5.0 -4.5 -4.0 -3.0 -1.0 1.0 3.0 4.0 5.0 4.5 4.0 3.0 2.0 1.0 0.0 -1.0 -2.0 -2.5 -3.0 -3.5;
-           0 0 0 0 0 0 0 2 5 8 10 12 10 8 5 2 1 0 0 0 0 0 0 0;
-           0 0 0 0 5 20 50 90 140 190 230 260 230 190 140 90 50 20 5 0 0 0 0 0;
-           0 0 0 5 20 60 120 180 160 100 40 10 2 0 0 0 0 0 0 0 0 0 0 0;
-           0 0 0 0 0 0 0 2 10 30 70 130 180 200 160 100 50 20 5 0 0 0 0 0;
-           10.07 10.04 10.00 9.96 9.93 9.96 10.00 10.07 10.15 10.23 10.30 10.35 10.40 10.38 10.35 10.30 10.25 10.23 10.20 10.15 10.10 10.06 10.04 10.02];
-trajDist = [trajDist;zeros(nz-size(trajDist,1),size(trajDist,2))];
+priceVec = trajPrice;
+priceVec = priceVec - min(priceVec);
+priceVec = priceVec/max(priceVec); %normalizacja względem maksymalnej ceny <0-1>
 
-% trajPrice = [trajPrice trajPrice trajPrice trajPrice trajPrice trajPrice trajPrice];
-% trajRef = [trajRef trajRef trajRef trajRef trajRef trajRef trajRef];
-% trajDist = [trajDist trajDist trajDist trajDist trajDist trajDist trajDist];
+[priceCost,~,~] = generateTrajectory(trajPrice,1,time,Ts,na,1);
+
 %--------------------------------------------------------------------------
 %%
 %Ograniczenia oraz warunki początkowe
-Ta0 = 20; %temperatura sekcji
-Tzi0 = 20; Tzo0 = 5; %temperatury wewnętrzna/zewnętrza ściany zewnętrznej
-Twi0 = 20; Two0 = 20; %temperatury wewnętrzna/zewnętrza ściany wewnętrznej
-Tp0 = 20; %temperatura podłogi
-T_return0 = 22;
+Ta0 = 20.5; %temperatura sekcji
+Tzi0 = 20.5; Tzo0 = 5; %temperatury wewnętrzna/zewnętrza ściany zewnętrznej
+Twi0 = 20.5; Two0 = 20.5; %temperatury wewnętrzna/zewnętrza ściany wewnętrznej
+Tp0 = 21; %temperatura podłogi
+T_return0 = 25;
 
-Ta_max = 21.5; Ta_min = 19.5; %ograniczenia temp. pomieszczen
+Ta_max = 23; Ta_min = 18; %ograniczenia temp. pomieszczen
 Twall_max = 100; Twall_min = -100; %ograniczenia temp. scian
 Tp_max = 27; Tp_min = 18; %ograniczenia temp. podlogi
 T_return_max = 35; T_return_min = 20;
@@ -206,7 +280,7 @@ ymax = Ta_max*ones(ny,1);
 ymin = Ta_min*ones(ny,1);
 
 %Ograniczenia i war. początkowe dla pompy
-T_buf = 49.5; T_bufMAX = 52.5; T_bufMIN = 47.5;
+T_buf = 49.5; T_bufMAX = 55; T_bufMIN = 47.5;
 P_MAX = 3000; P_MIN = 0;
 x0 = [x0;T_buf];
 xmax = [xmax; T_bufMAX];
@@ -257,7 +331,7 @@ nx = size(A,1); nu = size(B,2); ny = size(C,1); nz = size(Z,2);
 zoneWaterIndex = [];
 for i = 2:size(N,2)
     if vecUnheatedFloors(i-1) == 0
-        zoneWaterIndex = [zoneWaterIndex N(i) - N(i-1)];
+        zoneWaterIndex = [zoneWaterIndex N(i)-1];
     end
 end
 if vecUnheatedFloors(end) == 0

@@ -225,31 +225,35 @@ end
 
 %-----------
 Rwp = Rp + 1/U_conv; %opór cieplny pomiędzy podłogą, a wodą w obiegu grzewczym
-area_pipe = pi*1.1*area/eq(7)*eq(5);
+% area_pipe = pi*1.1*area/eq(7)*eq(5); %powierzchnia rurek
+area_pipe = area;
+%UWAGA: Założono, że temperatura rurek z wodą rozkłada się równomiernie na
+%całej powierzchni podłogi, ze względu na właściwości jastrychu
+
 if floorType == 0
     % Jeżeli sekcja znajduje się na pierwszym piętrze budynku wielopiętrowego
     roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area + area/(Rp+Rb)) area/Rwp/Cp];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area_pipe/Rwp + h1*area + area/(Rp+Rb)) area_pipe/Rwp/Cp];
 elseif floorType == 1
     % Jeżeli sekcja znajduje się na drugim -> przedostatnim piętrze budynku wielopiętrowego
     roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area) area/Rwp/Cp];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area_pipe/Rwp + h1*area) area_pipe/Rwp/Cp];
 elseif floorType == 2
     % Jeżeli sekcja znajduje się na ostatnim piętrze budynku wielopiętrowego
     roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h2*roofArea/Cso + roofArea/Rs/Cso) 0 0];
     
-    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area) area/Rwp/Cp];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area_pipe/Rwp + h1*area) area_pipe/Rwp/Cp];
 elseif floorType == -1
     % Jeżeli sekcja znajduje się w budynku jednopiętrowym
     roofEq = [h1*roofArea/Csi 0 0 zeros(1,2*n) -(h1*roofArea/Csi+roofArea/Rs/Csi) roofArea/Rs/Csi 0 0;
     0 0 0 zeros(1,2*n) roofArea/Rs/Cso -(h2*roofArea/Cso + roofArea/Rs/Cso) 0 0];
 
-    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area/Rwp + h1*area + area/(Rp+Rb)) area/Rwp/Cp];
+    floorEq = [h1*area/Cp 0 0 zeros(1,2*n) 0 0 -1/Cp*(area_pipe/Rwp + h1*area + area/(Rp+Rb)) area_pipe/Rwp/Cp];
 end
 
 %-----------
@@ -265,7 +269,7 @@ waterVelocity = eq(8)/60000 / (pi*(pipeRadius)^2); % [l/min] -> [m/s]
 m_dot = dw*pi*(pipeRadius)^2*waterVelocity;
 
 %Cwater * dT_water(t)/dt = m_dot*cw*(T_supply(t)-T_return(t)) + area/Rp*(T_floor(t)-T_return(t))
-returnWaterEq = [0 0 0 zeros(1,2*n) 0 0 area/Rwp/Cwater -(m_dot*cw/Cwater + area/Rwp/Cwater)];
+returnWaterEq = [0 0 0 zeros(1,2*n) 0 0 area_pipe/Rwp/Cwater -(m_dot*cw/Cwater + area_pipe/Rwp/Cwater)];
 
 A = [sectionEq;exteriorWallEq;interiorWallEq;roofEq;floorEq;returnWaterEq];
 
